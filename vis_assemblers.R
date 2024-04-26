@@ -5,7 +5,7 @@ par(mfrow = c(2,2))
 #the two boxplots
 boxplot(contigs ~ assembler_type, data = quast_summary_table_complete, col= c("#3FA0FF", "#FFE099", "#F76D5E"))
 boxplot(N50 ~ assembler_type, data = quast_summary_table_complete, col= c("#3FA0FF", "#FFE099", "#F76D5E"))
-
+#the two beeswarm plots
 library(beeswarm)
 beeswarm(contigs ~ assembler_type, data = quast_summary_table_complete,
          pch = 19, 

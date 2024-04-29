@@ -45,9 +45,11 @@ do
 echo "Running Kraken2 on $sample"
 kraken2 $zip "$sample".fq.$3 --db /home/genomics/bioinf_databases/kraken2/NCBI_nt_20230205/ --report "$OUT"/"$sample"_kraken2 --threads $4 --quick --memory-mapping
 
+ktImportTaxonomy -t 5 -m 3 -o "$OUT"/"$sample"_krona.html "$OUT"/"$sample"_kraken2.report
+
 done
 
-echo "Finished running Kraken2"
+echo "Finished running Kraken2 and Krona "
 
 
 

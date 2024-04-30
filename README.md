@@ -1,4 +1,4 @@
-# BIT10-Traineeship
+# BIT11-Traineeship
 All the scripts I made during my traineeship by ILVO eenheid Plant. 
 
 In the directory /readme_per_subject, you can find all the subjects I did during my internship. 

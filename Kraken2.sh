@@ -23,6 +23,15 @@ OUT=$2
 START_DIR=$(pwd)
 DATE_TIME=$(date '+%Y-%m-%d_%H-%M')
 
+#checking if the input directory exist 
+echo "the given input directory is:" $1 
+if [ -d "$DIR" ]; then
+    echo "$DIR exist."
+else 
+    echo "$DIR does not exist. Give a correct path:"
+	read DIR;
+fi
+
 ##running Kraken2   
 #going to the directory with the fastq.gz files
 cd $DIR
@@ -43,37 +52,37 @@ echo "====================================================================" | te
 #adding the command to the log file
 echo "the command that was used is:"| tee -a "$OUT"/"$DATE_TIME"_kraken2.log
 echo "Kraken2.sh" $1 $2 $3 $4 |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
-echo "This was performd in the following directory: $START_DIR" |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+echo "This was performed in the following directory: $START_DIR" |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_kraken2.log
-#specifying type of compression 
-if $3 == "gz";
-    then 
-        zip = "--gzip-compressed"
 
-elif $3 == "bz2";
+#specifying type of compression 
+if [[ $3 == "gz" ]];
+    then 
+        zip="--gzip-compressed"
+elif [[ $3 == "bz2" ]];
     then
-        zip = "--bzip2-compressed"
+        zip="--bzip2-compressed"
 fi
 
 #running Kraken2 on all the fastq.gz files
  
 for sample in `ls *.fq.* | awk 'BEGIN{FS=".fq.*"}{print $1}'`
 do
-#running Kraken2 on each sample
-echo "Running Kraken2 on $sample"
-kraken2 $zip "$sample".fq.$3 --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/"$sample"_kraken2.report --threads $4 --quick --memory-mapping 2>&1 |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+    #running Kraken2 on each sample
+    echo "Running Kraken2 on $sample" | tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+    kraken2 $zip "$sample".fq.$3 --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/"$sample"_kraken2.report --threads $4 --quick --memory-mapping 2>> "$OUT"/"$DATE_TIME"_kraken2.log
 
-#running Krona on the report
-echo "Running Krona on $sample"
-ktImportTaxonomy -t 5 -m 3 -o "$OUT"/"$sample"_krona.html "$OUT"/"$sample"_kraken2.report 2>&1 |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+    #running Krona on the report
+    echo "Running Krona on $sample" |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+    ktImportTaxonomy -t 5 -m 3 -o "$OUT"/"$sample"_krona.html "$OUT"/"$sample"_kraken2.report 2>> "$OUT"/"$DATE_TIME"_kraken2.log
 
-#removing the kraken reports after using these for krona
-echo "Removing kraken2 report"
-rm "$OUT"/"$sample"_kraken2.report 2>&1 |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+    #removing the kraken reports after using these for krona
+    echo "Removing kraken2 report" | tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+    rm "$OUT"/"$sample"_kraken2.report 2>> "$OUT"/"$DATE_TIME"_kraken2.log
 
 done
 
-echo "Finished running Kraken2 and Krona "
+echo "Finished running Kraken2 and Krona " | tee -a "$OUT"/"$DATE_TIME"_kraken2.log
 
 
 

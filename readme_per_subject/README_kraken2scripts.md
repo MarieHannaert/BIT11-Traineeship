@@ -163,10 +163,272 @@ rm *.kraken2.report
 ````
 testing this on test set -> The first updates worked and the errors are gone. 
 
-ALso testing if the script works for ".gz" files  -> 
+ALso testing if the script works for ".gz" files **/home/genomics/mhannaert/data/mini_testdata** -> 
 still got this error in the beginning: 
 ````
 Kraken_script/Kraken2.sh: line 30: gz: command not found
 Kraken_script/Kraken2.sh: line 34: gz: command not found
 ````
 but further the script works perfectly for ".gz" and ".bz2" files, even if they are in the same folder. 
+
+## execute the skani on the assemblies 
+skani is a program for calculating average nucleotide identity (ANI) from DNA sequences (contigs/MAGs/genomes) for ANI > ~80%.
+
+-> identification and clustering against an annotated database
+
+https://github.com/bluenote-1577/skani
+
+to perform this I used the following command: 
+````
+skani search *_spades.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o skani_results_file.txt -t 24 -n 1
+````
+The result can be found in: 
+**/home/genomics/mhannaert/assemblers_tryout/assemblie/skani_results_file.txt**
+
+You can now see in this result that there are three different "species" that can be found:
+-> for the sample 759 you can clearly see that it is an other: Rhodococcus erythropolis
+
+-> In the other samples there is again two different variants of the same species: 
+1. Ralstonia pseudosolanacearum
+2. Ralstonia solanacearum
+
+so this is a good thing to do if you see strange results after an anvio visualisation, because this could tell you whats is different and confirm the differences that you see in other results. 
+
+## extra updates for the script 
+### options that can be added
+
+1. Log  
+2. check of the input and output file exist 
+3. logging important information like: user of the script, versions of programs and what was the exact command
+
+### making these options 
+#### adding a log file 
+My supervisor already gave me this information to add a log file. 
+````
+#for a title for the log file
+DATE_TIME=$(date+"%d-%m-%y_%H-%M")
+
+#an example of a log file command
+fastp -w 16 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o ./trimmed/"$g"_1.fq.gz -O ./trimmed/"$g"_2.q.z -h ./trimmed/"$g"_fastp.html --detect_adapter_for_pe |tee >> ./trimmed/fastp_"$DATE_TIME".log
+
+#update of the previous command 
+tee -a ./trimmed/fastp_"$DATE_TIME".log
+
+#last update of the command
+2>&1 |tee -a fastp_"$DATE_TIME".log
+````
+So now I'm going to try to make this in to my Kraken2.sh, just to learn making this and to see if it works. 
+
+````
+#making the paremeter of the data of that specific day 
+DATE_TIME=$(date+"%d-%m-%y_%H-%M")
+
+#making a log file that conatians the data in the title
+touch "$OUT"/"$DATE_TIME"_kraken2.log
+
+#adding after each command
+2>&1 |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+````
+#### adding logging important information
+I added the following information to the log file: 
+````
+echo "The user of today is" $USER | tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+
+# adding the versions of the tools that are used 
+echo "the version that are used are:" | tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+Kraken2 -v | tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+mamba list | grep krona | tee -a "$OUT"/"$DATE_TIME"_kraken2.log 
+
+#adding the command to the log file
+echo "the command that was used is:"
+history | tail -2|head -1 |tee -a "$OUT"/"$DATE_TIME"_kraken2.log 
+````
+#### testing current changes 
+I will test the script again by running the script again on the **/home/genomics/mhannaert/data/mini_testdata** 
+ I used the following command: 
+ ````
+ Kraken2.sh mini_testdata/ output_test bz2 4
+ ````
+ The date wasn't wright, so I cahnaged that part: 
+ ````
+DATE_TIME=$(date '+%Y-%m-%d_%H-%M')
+ ````
+ output in the log file is: (I stopped it early because I only first wanted to test my log file): 
+ ````
+  GNU nano 6.2                                                                  2024-05-02_12-05_kraken2.log                                                                           The user of today is mhannaert
+the version that are used are:
+# packages in environment at /opt/miniforge3/envs/krona:
+krona                     2.8.1           pl5321hdfd78af_1    bioconda
+Loading database information... done.
+ ````
+ So there is something wrong with the version adding of kraken 
+
+The kraken2 command was typed with a capital so that was the problem 
+rerun and worked, so now I will let I run completley to see if it also add the other command for each sample
+
+the output looks like this: 
+````
+The user of today is mhannaert
+====================================================================
+the version that are used are:
+Kraken version 2.1.2
+Copyright 2013-2021, Derrick Wood (dwood@cs.jhu.edu)
+# packages in environment at /opt/miniforge3/envs/krona:
+krona                     2.8.1           pl5321hdfd78af_1    bioconda
+====================================================================
+====================================================================
+Loading database information... done.
+C       LH00201:19:22HT2CLT3:5:1101:1379:1048   48736   148     48736:Q
+C       LH00201:19:22HT2CLT3:5:1101:15230:1048  305     140     305:Q
+C       LH00201:19:22HT2CLT3:5:1101:18244:1048  48736   151     48736:Q
+C       LH00201:19:22HT2CLT3:5:1101:18484:1048  305     151     305:Q
+C       LH00201:19:22HT2CLT3:5:1101:26529:1048  28216   151     28216:Q
+...
+````
+So the command isn't saved in the log file 
+the rest looks good 
+
+I changed that part about adding the command to the log file to: 
+````
+echo "Kraken2.sh $1 $2 $3 $4 |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+````
+Because, if you execute the script it is the script name and then the commands, so that part can be hard coded. 
+I tested it and it gave this output: 
+````
+The user of today is mhannaert
+====================================================================
+the version that are used are:
+Kraken version 2.1.2
+Copyright 2013-2021, Derrick Wood (dwood@cs.jhu.edu)
+# packages in environment at /opt/miniforge3/envs/krona:
+krona                     2.8.1           pl5321hdfd78af_1    bioconda
+====================================================================
+The user of today is mhannaert
+====================================================================
+the version that are used are:
+Kraken version 2.1.2
+Copyright 2013-2021, Derrick Wood (dwood@cs.jhu.edu)
+# packages in environment at /opt/miniforge3/envs/krona:
+krona                     2.8.1           pl5321hdfd78af_1    bioconda
+====================================================================
+Kraken2.sh mini_testdata/ output_test bz2 4
+====================================================================
+Loading database information... done.
+````
+There is a sentence gone, I just forgot to add "| tee -a "$OUT"/"$DATE_TIME"_kraken2.log" part to the line. 
+
+I also added the working directory to the log file. Because then you will know everything
+````
+#saving the pwd before changing it to the outputfolder
+START_DIR=$(pwd)
+#adding it to the log file
+echo "This was performd in the following directory: $START_DIR" |tee -a "$OUT"/"$DATE_TIME"_kraken2.log
+````
+this worked 
+
+#### found the solution to the error of bz2
+The error that already was there from the beginning 
+````
+Kraken_script/Kraken2.sh: line 30: gz: command not found
+Kraken_script/Kraken2.sh: line 34: gz: command not found
+````
+Was because I didn't have the double brackets around my conditions in my if status. 
+so I changed it to: 
+````
+if [[ $3 == "gz" ]];
+    then 
+        zip="--gzip-compressed"
+elif [[ $3 == "bz2" ]];
+    then
+        zip="--bzip2-compressed"
+fi
+````
+This solved the error, also that there must be spaces between the brackets and the conditions. 
+#### checking the existing of input file and output file 
+The output doesn't need to be checked because it will be created when it doesn't exist. 
+
+for the input directory, this needed to be check directly after checking if all the parameters are given by the script, so I added right after that the following:
+````
+#checking if the input directory exist 
+echo "the given input directory is:" $1 
+if [ -d "$DIR" ]; then
+    echo "$DIR exist."
+else 
+    echo "$DIR does not exist. Give a correct path in the command"
+	exit 1;
+fi
+````
+If the input directory doesn't exist, the script will stop and give an error.
+
+An other option is to ask again for a directory ad update the $DIR variable:
+````
+echo "the given input directory is:" $1 
+if [ -d "$DIR" ]; then
+    echo "$DIR exist."
+else 
+    echo "$DIR does not exist. Give a correct path:"
+	read DIR;
+fi
+````
+
+This worked whenI didn't gave a correct path it asked for a new path and used the variable 
+````
+the given input directory is: min_testdata/
+min_testdata/ does not exist. Give a correct path:
+mini_testdata/
+The user of today is mhannaert
+====================================================================
+the version that are used are:
+Kraken version 2.1.2
+Copyright 2013-2021, Derrick Wood (dwood@cs.jhu.edu)
+# packages in environment at /opt/miniforge3/envs/krona:
+krona                     2.8.1           pl5321hdfd78af_1    bioconda
+====================================================================
+the command that was used is:
+Kraken2.sh min_testdata/ output_try bz2 4
+This was performed in the following directory: /home/genomics/mhannaert/data
+====================================================================
+````
+#### updating the log 
+When I performed the the script wrote EVERYTHING to the log file so that file became to big. 
+So I only add the steps and for the command I only add the error if this occures. 
+
+so " 2>" ipv "2>&1" 
+
+These gave an error 
+````
+../scripts/Kraken2.sh: line 73: syntax error near unexpected token `|'
+../scripts/Kraken2.sh: line 73: `    kraken2 $zip "$sample".fq.$3 --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/"$sample"_kraken2.report --threads $4 --quick --memory-mapping 2> |tee -a "$OUT"/"$DATE_TIME"_kraken2.log'
+````
+I changed the "2> | tee -a" to "2>>" the error will not be printed in the terminal and only added to the log file, but that's okay, because when something goes wrong, the program will stop and then you can just check the log file. 
+This solved the error 
+
+The output looks like this and that's a good output: 
+````
+The user of today is mhannaert
+====================================================================
+the version that are used are:
+Kraken version 2.1.2
+Copyright 2013-2021, Derrick Wood (dwood@cs.jhu.edu)
+# packages in environment at /opt/miniforge3/envs/krona:
+krona                     2.8.1           pl5321hdfd78af_1    bioconda
+====================================================================
+the command that was used is:
+Kraken2.sh min_testdata/ output_try bz2 4
+This was performed in the following directory: /home/genomics/mhannaert/data
+====================================================================
+Running Kraken2 on 070_001_240321_001_0355_099_01_4691_1
+Loading database information... done.
+7631849 sequences (1141.13 Mbp) processed in 356.923s (1282.9 Kseq/m, 191.83 Mbp/m).
+  7616079 sequences classified (99.79%)
+  15770 sequences unclassified (0.21%)
+Running Krona on 070_001_240321_001_0355_099_01_4691_1
+   [ WARNING ]  Score column already in use; not reading scores.
+   [ WARNING ]  The following taxonomy IDs were not found in the local database and were set to root (if they were recently added to NCBI, use updateTaxonomy.sh to update the local
+                database): 3043410 1740163
+Removing kraken2 report
+Running Kraken2 on 070_001_240321_001_0355_099_01_4691_1
+Loading database information... done.
+
+````
+Thus the scripts work till here. 

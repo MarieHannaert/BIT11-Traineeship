@@ -5,9 +5,9 @@ function usage(){
 	errorString="Running this Kraken2 script requires 4 parameters:\n
 		1. Path of the folder with fastq.gz files.\n
 		2. Name of the output folder.\n
-        3. Type of compression (gz or bz2)\n
-        4. Number of threads to use.\n
-        -> you also have to activate the following conda env: krona";
+    3. Type of compression (gz or bz2)\n
+    4. Number of threads to use.\n
+    -> you also have to activate the following conda env: krona";
 
 	echo -e ${errorString};
 	exit 1;
@@ -74,7 +74,7 @@ fi
 
 #running Kraken2 on all the fastq.gz files
  
-for sample in `ls *.fq.* | awk 'BEGIN{FS=".fq.*"}{print $1}'`
+for sample in `ls *.fq.$3 | awk 'BEGIN{FS=".fq.*"}{print $1}'`
 do
     #running Kraken2 on each sample
     echo "Running Kraken2 on $sample" | tee -a "$OUT"/"$DATE_TIME"_kraken2.log

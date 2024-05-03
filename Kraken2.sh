@@ -24,13 +24,21 @@ START_DIR=$(pwd)
 DATE_TIME=$(date '+%Y-%m-%d_%H-%M')
 
 #checking if the input directory exist 
-echo "the given input directory is:" $1 
-if [ -d "$DIR" ]; then
-    echo "$DIR exist."
-else 
-    echo "$DIR does not exist. Give a correct path:"
-	read DIR;
-fi
+while true; do
+  echo "The given input directory is: $1"
+
+  if [ -d "$1" ]; then
+    echo "$1 exists."
+    break
+  else
+    echo "$1 does not exist. Please enter a correct path:"
+    read -r DIR
+    if [ -d "$DIR" ]; then
+      # If the user entered a valid directory path, use it instead of the original argument
+      set -- "$DIR"
+    fi
+  fi
+done
 
 ##running Kraken2   
 #going to the directory with the fastq.gz files

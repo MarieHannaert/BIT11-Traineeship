@@ -389,6 +389,34 @@ Kraken2.sh min_testdata/ output_try bz2 4
 This was performed in the following directory: /home/genomics/mhannaert/data
 ====================================================================
 ````
+The checing for the input directory is not correct, because it will ask one time for a new directory but when that new directory is also not correct it will not ask again
+
+I changed it to the followig loop with help from blackbow AI: 
+````
+while true; do
+  echo "The given input directory is: $1"
+
+  if [ -d "$1" ]; then
+    echo "$1 exists."
+    break
+  else
+    echo "$1 does not exist. Please enter a correct path:"
+    read -r DIR
+    if [ -d "$DIR" ]; then
+      # If the user entered a valid directory path, use it instead of the original argument
+      set -- "$DIR"
+    fi
+  fi
+done
+````
+I tested it and it worked 
+For the gile type I also added the following: 
+````
+else
+    echo "The compression type is not supported, only use .gz or .bz2"
+    exit 1
+````
+
 #### updating the log 
 When I performed the the script wrote EVERYTHING to the log file so that file became to big. 
 So I only add the steps and for the command I only add the error if this occures. 
@@ -432,3 +460,30 @@ Loading database information... done.
 
 ````
 Thus the scripts work till here. 
+I could do more options but I think it would be an overkill for what the script has to do, it was a great exercise. My supervisor also said that it was good and that is was good for me to make everything and try everything on such a small script to practise. 
+The last log file of the last run can be found in my Onenote ELN on 03/05/2024. 
+Part output of last log file:
+````
+The user of today is mhannaert
+====================================================================
+the version that are used are:
+Kraken version 2.1.2
+Copyright 2013-2021, Derrick Wood (dwood@cs.jhu.edu)
+# packages in environment at /opt/miniforge3/envs/krona:
+krona                     2.8.1           pl5321hdfd78af_1    bioconda
+====================================================================
+the command that was used is:
+Kraken2.sh mini_testdata/ output_test gz 4
+This was performed in the following directory: /home/genomics/mhannaert/data
+====================================================================
+Running Kraken2 on 070_001_240321_001_0355_099_01_4691_1
+Loading database information... done.
+7631849 sequences (1141.13 Mbp) processed in 4900.504s (93.4 Kseq/m, 13.97 Mbp/m).
+  7616079 sequences classified (99.79%)
+  15770 sequences unclassified (0.21%)
+Running Krona on 070_001_240321_001_0355_099_01_4691_1
+   [ WARNING ]  Score column already in use; not reading scores.
+   [ WARNING ]  The following taxonomy IDs were not found in the local database and were set to root (if they were recently added to NCBI, use updateTaxonomy.sh to update the local
+                database): 1740163 3043410
+Removing kraken2 report
+````

@@ -487,3 +487,42 @@ Running Krona on 070_001_240321_001_0355_099_01_4691_1
                 database): 1740163 3043410
 Removing kraken2 report
 ````
+## last error found in the script 
+When I performed the script In the log file I saw that the command was 8x performed, but it must only be 4x, I think the error will be in the selecting the .gz and .bz2. Because In the directory are 8 files, 4 .gz and 4.bz2 so I think it did both and not only the one you select. Because of log file, I saw the error. 
+
+I changed the elif to if:
+````
+if [[ $3 == "gz" ]];
+    then 
+        zip="--gzip-compressed"
+fi
+
+if [[ $3 == "bz2" ]];
+      then
+        zip="--bzip2-compressed"
+fi
+````
+but this didn't change the error and again eight samples were processed 
+I changed the double brackets to single brackets: 
+````
+if [ $3 == "gz" ];
+    then 
+        zip="--gzip-compressed"
+fi
+
+if [ $3 == "bz2" ];
+      then
+        zip="--bzip2-compressed"
+fi
+````
+This didn't work either, blackbox AI told my, my error was in the line "for samples in..." 
+there the .fq.* must be .fq.$3 
+````
+for sample in `ls *.fq.$3 | awk 'BEGIN{FS=".fq.*"}{print $1}'`
+````
+-> this would solve the problem normaly 
+I changed back the previouse changes and tested this
+This indeed solved this error. 
+
+
+

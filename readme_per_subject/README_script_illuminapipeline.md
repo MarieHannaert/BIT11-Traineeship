@@ -502,6 +502,7 @@ done
 echo
 echo "Finished trimming"
 ```
+so no --dedup option, because we tested it in **/home/genomics/mhannaert/assemblers_tryout** and it didn't had a lot of positive influence. 
 So I edited this to fit it in the script:
 ```
 #now perfroming fastp on the samples
@@ -626,10 +627,10 @@ I think this is too much info for the log file, so I think it's beter to create 
 this is a succes. 
 
 ## Shovill 
-I will now add the part for shovill, for the assembly of the reads. 
+I will now add the part for shovill, for the assembly of the reads. I will use it with spades, because in **/home/genomics/mhannaert/assemblers_tryout** it showed that spades was the best option for our data. 
 ### making test data smaller
 I will make a smaller test data set, so I can test the assembly. because otherwise it will take a long time to test with complete files. 
-I will do this by using the program seqtk.
+I will do this by using the program seqtk. https://github.com/lh3/seqtk
 
 The command I used to perform this is the following: 
 ````
@@ -659,5 +660,37 @@ I don't need to add this in the code because when you decompress and compress an
 and later on when the assembly is done with shovill, I will remove the trimmed reads and only keep the informative files like the JSON and the HTML. 
 
 ### further with shovill 
+The code I used to perform this was already a script: **/home/genomics/mhannaert/scripts/shovill_multi.sh**
+So I will try to fit the information of the script in the my script. 
 
+VSC crassed so I worked on my code in nano, but that's not very practise to document each part. 
+I had some issues with were my log files and directories I made in this part were located, so I had to fix them. 
+With all the fixes the code looks now likes this and works: 
+````
+#Shovill part
+conda activate shovill
+#making a folder for the output
+mkdir -p "$OUT"/shovill
+#making a log file for the shovill
+touch "$OUT"/shovill/"$DATE_TIME"_shovill.log
+#moving in to the file with the needed samples
+cd "$OUT"/fastp/
+
+FILES=(*_1.fq.gz)
+#loop over all files in $FILES and do the assembly for each of the files
+for f in "${FILES[@]}"
+do
+        SAMPLE=`basename $f _1.fq.gz`   #extract the basename from the file and store it in the variable SAMPLE
+
+        #run Shovill
+        shovill --R1 "$SAMPLE"_1.fq.gz --R2 "$SAMPLE"_2.fq.gz --cpus 16 --ram 16 --minlen 500 --trim -outdir ../shovill/"$SAMPLE"/ 2>> ../shovill/"$DATE_TIME"_shovill.log
+        echo "==========================================================================" >> ../shovill/"$DATE_TIME"_shovill.log
+        echo Assembly "$SAMPLE" done ! | tee -a ../"$DATE_TIME"_Illuminapipeline.log
+done
+#moving back to the main directory
+cd ..
+conda deactivate
+````
+To perform this I needed to rename my files form 070_001_240321_001_0355_099_01_4691_2_sub.fq.gz sub_070_0
+01_240321_001_0355_099_01_4691_2.fq.gz form, otherwise they won't be recognised. 
 

@@ -125,17 +125,41 @@ conda deactivate
 #going back up to the samples
 cd ..
 #making a folder for the trimmed samples
-mkdir -p "$OUT"/trimmed
-touch "$OUT"/trimmed/"$DATE_TIME"_fastp.log
+mkdir -p "$OUT"/fastp
+touch "$OUT"/fastp/"$DATE_TIME"_fastp.log
 #loop over read files
 for g in `ls *_1.fq.gz | awk 'BEGIN{FS="_1.fq.gz"}{print $1}'`
 do
     echo "Working on trimming genome $g with fastp" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
-    fastp -w 32 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o "$OUT"/trimmed/"$g"_1.fq.gz -O "$OUT"/trimmed/"$g"_2.fq.gz -h "$OUT"/trimmed/"$g"_fastp.html -j "$OUT"/trimmed/"$g"_fastp.json --detect_adapter_for_pe 2>> "$OUT"/trimmed/"$DATE_TIME"_fastp.log
+    fastp -w 32 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o "$OUT"/fastp/"$g"_1.fq.gz -O "$OUT"/fastp/"$g"_2.fq.gz -h "$OUT"/fastp/"$g"_fastp.html -j "$OUT"/fastp/"$g"_fastp.json --detect_adapter_for_pe 2>> "$OUT"/fastp/"$DATE_TIME"_fastp.log
 done
 echo
 echo "Finished trimming" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 
+
+#Shovill part
+conda activate shovill
+#making a folder for the output 
+mkdir -p "$OUT"/shovill
+#making a log file for the shovill
+touch "$OUT"/shovill/"$DATE_TIME"_shovill.log
+#moving in to the file with the needed samples
+cd "$OUT"/fastp/
+
+FILES=(*_1.fq.gz)
+#loop over all files in $FILES and do the assembly for each of the files
+for f in "${FILES[@]}" 
+do 
+	SAMPLE=`basename $f _1.fq.gz`  	#extract the basename from the file and store it in the variable SAMPLE
+
+	#run Shovill
+	shovill --R1 "$SAMPLE"_1.fq.gz --R2 "$SAMPLE"_2.fq.gz --cpus 16 --ram 16 --minlen 500 --trim -outdir ../shovill/"$SAMPLE"/ 2>> ../shovill/"$DATE_TIME"_shovill.log
+	echo "==========================================================================" >> ../shovill/"$DATE_TIME"_shovill.log
+	echo Assembly "$SAMPLE" done ! | tee -a ../"$DATE_TIME"_Illuminapipeline.log
+done
+#moving back to the main directory
+cd ..
+conda deactivate
 
 
 

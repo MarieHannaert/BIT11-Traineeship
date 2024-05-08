@@ -3,6 +3,23 @@
 #when this script is completed, it needs to become a snakemake pipeline
 #This script is meant to be performed on the server
 
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/opt/miniforge3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/opt/miniforge3/etc/profile.d/conda.sh" ]; then
+        . "/opt/miniforge3/etc/profile.d/conda.sh"
+    else
+        export PATH="/opt/miniforge3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
+
+
 ##checking for parameters
 function usage(){
 	errorString="Running this Illumina pipeline script requires 4 parameters:\n
@@ -55,6 +72,12 @@ echo "====================================================================" | te
 # adding the versions of the tools that are used 
 echo "the version that are used are:" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 #I will fill this in while writing the script 
+fastqc -v | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda activate multiqc
+conda list | grep multiqc | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
+fastp -v | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 #adding the command to the log file
 echo "the command that was used is:"| tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
@@ -86,14 +109,32 @@ echo Performing fastqc | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 mkdir -p "$OUT"/fastqc
 fastqc -t 32 *.gz --extract -o "$OUT"/fastqc 
 #activating the mamba env 
-mamba init 2>> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
-mamba activate multiqc 2>> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
-#perfomring the multiqc on the fastqc samples
-echo performing multiqc | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
-multiqc "$OUT"/fastqc 2>> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
-#deactivating the mamba env
-mamba deactivate multiqc 2>> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+#conda init 2>> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 
+conda activate multiqc 
+#perfomring the multiqc on the fastqc samples
+cd $OUT
+echo performing multiqc | tee -a "$DATE_TIME"_Illuminapipeline.log
+multiqc fastqc 2>> "$DATE_TIME"_Illuminapipeline.log
+echo removing fastqc/ | tee -a "$DATE_TIME"_Illuminapipeline.log
+rm -rd fastqc/ 2>> "$DATE_TIME"_Illuminapipeline.log
+#deactivating the mamba env
+conda deactivate
+
+#now perfroming fastp on the samples
+#going back up to the samples
+cd ..
+#making a folder for the trimmed samples
+mkdir -p "$OUT"/trimmed
+touch "$OUT"/trimmed/"$DATE_TIME"_fastp.log
+#loop over read files
+for g in `ls *_1.fq.gz | awk 'BEGIN{FS="_1.fq.gz"}{print $1}'`
+do
+    echo "Working on trimming genome $g with fastp" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+    fastp -w 32 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o "$OUT"/trimmed/"$g"_1.fq.gz -O "$OUT"/trimmed/"$g"_2.fq.gz -h "$OUT"/trimmed/"$g"_fastp.html -j "$OUT"/trimmed/"$g"_fastp.json --detect_adapter_for_pe 2>> "$OUT"/trimmed/"$DATE_TIME"_fastp.log
+done
+echo
+echo "Finished trimming" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 
 
 

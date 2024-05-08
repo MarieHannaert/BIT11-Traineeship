@@ -193,7 +193,7 @@ so there are some errors that need the to be fixed before I continue with the re
 the first error is that the files are not reformated from bz2 to gz, so I decided to out command the part after so I only can check how to make the part about gz/bz2 work. 
 
 I had in my code $2 but thats the output folder, it must be $3, I retried and it worked. => error solved. I replaced this part to below the log file, so that this also can be logged. 
-`````
+````
 echo "checking fileformat and reformat if needed" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 if [[ $3 == "bz2" ]]; then
     #decompress bz2
@@ -400,3 +400,229 @@ performing multiqc
 Run 'mamba init' to be able to run mamba activate/deactivate
 and start a new shell session. Or use conda to activate/deactivate.
 ````
+## further solving error mamba 
+I tried already different options
+- use conda activate 
+- source 
+
+Now I changed the mamba to conda, because mamba is actually a layer on my conda, so conda will have more chance to work (advise of my supervisor)
+
+result it didn't worked
+
+now we added the following part to the top of the script: 
+````
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/opt/miniforge3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/opt/miniforge3/etc/profile.d/conda.sh" ]; then
+        . "/opt/miniforge3/etc/profile.d/conda.sh"
+    else
+        export PATH="/opt/miniforge3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+````
+now it worked but just one error: 
+````
+ArgumentError: deactivate does not accept arguments
+remainder_args: ['multiqc'] 
+````
+but that's because I added multiqc after, so now I removed it. 
+The multiqc is added in the folder above, so I will make that the result of that is performed in the output folder that is defined
+to fix this I will move in to the output folder. 
+````
+cd $OUT 
+````
+Also I want to remove the fastqc output once the multiqc is performed. So I added the following part:µ
+````
+rm -rd fastqc/ 
+````
+the -rd option means d for directory and r for recursive, so all the folders and files in that file too. 
+
+result of running (content logfile): 
+````
+The user of 2024-05-08_09-34 is: mhannaert
+====================================================================
+the version that are used are:
+====================================================================
+the command that was used is:
+complete_illuminapipeline.sh /home/genomics/mhannaert/data/mini_testdata/gz_files/ output_test2 gz 4
+This was performed in the following directory: /home/genomics/mhannaert
+====================================================================
+checking fileformat and reformat if needed
+files are gz, so that's fine
+Performing fastqc
+performing multiqc
+
+  /// MultiQC 🔍 | v1.21
+
+|           multiqc | Search path : /home/genomics/mhannaert/data/mini_testdata/gz_files/output_test2/fastqc
+|         searching | ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 76/76  
+|            fastqc | Found 4 reports
+|           multiqc | Report      : multiqc_report.html
+|           multiqc | Data        : multiqc_data
+|           multiqc | MultiQC complete
+removing fastqc/
+````
+This part of code that now works looks like this: 
+````
+conda activate multiqc 
+#perfomring the multiqc on the fastqc samples
+cd $OUT
+echo performing multiqc | tee -a "$DATE_TIME"_Illuminapipeline.log
+multiqc fastqc 2>> "$DATE_TIME"_Illuminapipeline.log
+echo removing fastqc/ | tee -a "$DATE_TIME"_Illuminapipeline.log
+rm -rd fastqc/ 2>> "$DATE_TIME"_Illuminapipeline.log
+#deactivating the mamba env
+conda deactivate
+````
+I will now add the version to the log file for the fastqc and the multiqc 
+```
+fastqc -v | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda activate multiqc
+conda list | grep multiqc | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
+```
+## Fastp
+The part that needed to be added is the following, this is just only I you want to perform fastp on the command line: 
+```
+mkdir trimmed
+
+#loop over read files
+
+for g in `ls *_1.fq.gz | awk 'BEGIN{FS="_1.fq.gz"}{print $1}'`
+do
+    echo "Working on trimming genome $g with fastp"
+    fastp -w 32 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o ./trimmed/"$g"_1.fq.gz -O ./trimmed/"$g"_2.fq.gz -h ./trimmed/"$g"_fastp.html -j ./trimmed/"$g"_fastp.json --detect_adapter_for_pe
+done
+echo
+echo "Finished trimming"
+```
+So I edited this to fit it in the script:
+```
+#now perfroming fastp on the samples
+#going back up to the samples
+cd ..
+#making a folder for the trimmed samples
+mkdir -p "$OUT"/trimmed
+#loop over read files
+for g in `ls *_1.fq.gz | awk 'BEGIN{FS="_1.fq.gz"}{print $1}'`
+do
+    echo "Working on trimming genome $g with fastp" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+    fastp -w 32 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o "$OUT"/trimmed/"$g"_1.fq.gz -O "$OUT"/trimmed/"$g"_2.fq.gz -h "$OUT"/trimmed/"$g"_fastp.html -j "$OUT"/trimmed/"$g"_fastp.json --detect_adapter_for_pe 2>> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+done
+echo
+echo "Finished trimming" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+```
+after performen this was the output: 
+````
+Working on trimming genome 070_001_240321_001_0355_099_01_4691 with fastp
+Detecting adapter sequence for read1...
+No adapter detected for read1
+
+Detecting adapter sequence for read2...
+No adapter detected for read2
+
+WARNING: fastp uses up to 16 threads although you specified 32
+Read1 before filtering:
+total reads: 7631849
+total bases: 1141125367
+Q20 bases: 1125478692(98.6288%)
+Q30 bases: 1093512194(95.8275%)
+
+Read2 before filtering:
+total reads: 7631849
+total bases: 1141072476
+Q20 bases: 1114173176(97.6426%)
+Q30 bases: 1065807647(93.404%)
+
+Read1 after filtering:
+total reads: 7534469
+total bases: 1126426410
+Q20 bases: 1113355586(98.8396%)
+Q30 bases: 1084197858(96.2511%)
+
+Read2 after filtering:
+total reads: 7534469
+total bases: 1126107965
+Q20 bases: 1105561370(98.1754%)
+Q30 bases: 1062147296(94.3202%)
+
+Filtering result:
+reads passed filter: 15068938
+reads failed due to low quality: 186706
+reads failed due to too many N: 8054
+reads failed due to too short: 0
+reads with adapter trimmed: 23930
+bases trimmed due to adapters: 801462
+
+Duplication rate: 17.2449%
+
+Insert size peak (evaluated by paired-end reads): 262
+
+JSON report: output_test2/trimmed/070_001_240321_001_0355_099_01_4691_fastp.json
+HTML report: output_test2/trimmed/070_001_240321_001_0355_099_01_4691_fastp.html
+
+fastp -w 32 -i 070_001_240321_001_0355_099_01_4691_1.fq.gz -I 070_001_240321_001_0355_099_01_4691_2.fq.gz -o output_test2/trimmed/070_001_240321_001_0355_099_01_4691_1.fq.gz -O output_test2/trimmed/070_001_240321_001_0355_099_01_4691_2.fq.gz -h output_test2/trimmed/070_001_240321_001_0355_099_01_4691_fastp.html -j output_test2/trimmed/070_001_240321_001_0355_099_01_4691_fastp.json --detect_adapter_for_pe 
+fastp v0.23.4, time used: 52 seconds
+Working on trimming genome 070_001_240321_001_0356_099_01_4691 with fastp
+Detecting adapter sequence for read1...
+No adapter detected for read1
+
+Detecting adapter sequence for read2...
+No adapter detected for read2
+
+WARNING: fastp uses up to 16 threads although you specified 32
+Read1 before filtering:
+total reads: 4312678
+total bases: 640655468
+Q20 bases: 630987777(98.491%)
+Q30 bases: 612716511(95.639%)
+
+Read2 before filtering:
+total reads: 4312678
+total bases: 640659355
+Q20 bases: 628645003(98.1247%)
+Q30 bases: 607100148(94.7618%)
+
+Read1 after filtering:
+total reads: 4260888
+total bases: 632919170
+Q20 bases: 625017052(98.7515%)
+Q30 bases: 608400597(96.1261%)
+
+Read2 after filtering:
+total reads: 4260888
+total bases: 632643511
+Q20 bases: 623693126(98.5852%)
+Q30 bases: 604543820(95.5584%)
+
+Filtering result:
+reads passed filter: 8521776
+reads failed due to low quality: 98222
+reads failed due to too many N: 5358
+reads failed due to too short: 0
+reads with adapter trimmed: 19770
+bases trimmed due to adapters: 550209
+
+Duplication rate: 10.8003%
+
+Insert size peak (evaluated by paired-end reads): 264
+
+JSON report: output_test2/trimmed/070_001_240321_001_0356_099_01_4691_fastp.json
+HTML report: output_test2/trimmed/070_001_240321_001_0356_099_01_4691_fastp.html
+
+fastp -w 32 -i 070_001_240321_001_0356_099_01_4691_1.fq.gz -I 070_001_240321_001_0356_099_01_4691_2.fq.gz -o output_test2/trimmed/070_001_240321_001_0356_099_01_4691_1.fq.gz -O output_test2/trimmed/070_001_240321_001_0356_099_01_4691_2.fq.gz -h output_test2/trimmed/070_001_240321_001_0356_099_01_4691_fastp.html -j output_test2/trimmed/070_001_240321_001_0356_099_01_4691_fastp.json --detect_adapter_for_pe 
+fastp v0.23.4, time used: 38 seconds
+Finished trimming
+````
+This looks like it worked, I will also add fastp to the version list. 
+I think this is too much info for the log file, so I think it's beter to create a log file specific for the fastp. 
+
+this is a succes. 
+
+## Shovill 

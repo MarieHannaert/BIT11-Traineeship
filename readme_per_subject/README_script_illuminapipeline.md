@@ -859,5 +859,76 @@ cd ..
 The python script generate_plot.Py, I couldn't find it on the server. So I out commented this code, and will ask later at my supervisor. 
 I tested the commands for the first part of this part by selecting and copying the files the the wright directory and that worked, so I thinks this part will work. 
 
+adding busco the version list: 
+````
+conda activate busco
+conda list | grep busco | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
+````
 
+Tested the script again on the complete data of the directory: **/home/genomics/mhannaert/data/mini_testdata/gz_files**
+
+output of log file loks like this: 
+````
+The user of 2024-05-08_16-41 is: mhannaert
+====================================================================
+the version that are used are:
+FastQC v0.11.9
+# packages in environment at /opt/miniforge3/envs/multiqc:
+multiqc                   1.21               pyhdfd78af_0    bioconda
+# packages in environment at /opt/miniforge3/envs/shovill:
+shovill                   1.1.0                hdfd78af_1    bioconda
+# packages in environment at /opt/miniforge3/envs/quast:
+quast                     5.2.0           py310pl5321h6cc9453_3    bioconda
+# packages in environment at /opt/miniforge3/envs/busco:
+busco                     5.7.1              pyhdfd78af_0    bioconda
+====================================================================
+the command that was used is:
+complete_illuminapipeline.sh /home/genomics/mhannaert/data/mini_testdata/gz_files/ output_test4 gz 4
+This was performed in the following directory: /home/genomics/mhannaert/data/mini_testdata/gz_files
+====================================================================
+checking fileformat and reformat if needed
+files are gz, so that's fine
+Performing fastqc
+performing multiqc
+
+  /// MultiQC 🔍 | v1.21
+
+|           multiqc | Search path : /home/genomics/mhannaert/data/mini_testdata/gz_files/output_test4/fastqc
+|         searching | ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 76/76  
+|            fastqc | Found 4 reports
+|           multiqc | Report      : multiqc_report.html
+|           multiqc | Data        : multiqc_data
+|           multiqc | MultiQC complete
+removing fastqc/
+Working on trimming genome 070_001_240321_001_0355_099_01_4691 with fastp
+Working on trimming genome 070_001_240321_001_0356_099_01_4691 with fastp
+Finished trimming
+Assembly 070_001_240321_001_0355_099_01_4691 done !
+Assembly 070_001_240321_001_0356_099_01_4691 done !
+collecting contig files in assemblies/
+cleaning fastp and shovill
+performing quast
+making a summary of quast data
+performing busco
+making summary busco
+end of primary analysis for Illumina or short reads
+````
+## extra edits on the script
+adding an end to the log file
+````
+echo "end of primary analysis for Illumina or short reads" | tee -a "$DATE_TIME"_Illuminapipeline.log
+````
+I just need to perform the extra busco part in the enviroment and then it works so I added it again. 
+This part worked. 
+
+### addings that my supervisor advised: 
+- kraken2, toetevoegen achter multiqc
+- krona
+- skANI
+
+other options I will do friday: 
+- checking which busco folders are needed 
+
+Also in the beginning I ask for CPU's so I will replace all the hard coded CPU with $4 
 

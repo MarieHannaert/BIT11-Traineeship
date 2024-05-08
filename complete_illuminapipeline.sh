@@ -76,8 +76,12 @@ fastqc -v | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda activate multiqc
 conda list | grep multiqc | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda deactivate
-fastp -v | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 
+fastp -v >> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+
+conda activate shovill
+conda list | grep shovill | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 #adding the command to the log file
 echo "the command that was used is:"| tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
@@ -133,7 +137,6 @@ do
     echo "Working on trimming genome $g with fastp" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
     fastp -w 32 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o "$OUT"/fastp/"$g"_1.fq.gz -O "$OUT"/fastp/"$g"_2.fq.gz -h "$OUT"/fastp/"$g"_fastp.html -j "$OUT"/fastp/"$g"_fastp.json --detect_adapter_for_pe 2>> "$OUT"/fastp/"$DATE_TIME"_fastp.log
 done
-echo
 echo "Finished trimming" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 
 
@@ -141,8 +144,6 @@ echo "Finished trimming" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda activate shovill
 #making a folder for the output 
 mkdir -p "$OUT"/shovill
-#making a log file for the shovill
-touch "$OUT"/shovill/"$DATE_TIME"_shovill.log
 #moving in to the file with the needed samples
 cd "$OUT"/fastp/
 
@@ -153,12 +154,55 @@ do
 	SAMPLE=`basename $f _1.fq.gz`  	#extract the basename from the file and store it in the variable SAMPLE
 
 	#run Shovill
-	shovill --R1 "$SAMPLE"_1.fq.gz --R2 "$SAMPLE"_2.fq.gz --cpus 16 --ram 16 --minlen 500 --trim -outdir ../shovill/"$SAMPLE"/ 2>> ../shovill/"$DATE_TIME"_shovill.log
-	echo "==========================================================================" >> ../shovill/"$DATE_TIME"_shovill.log
+	shovill --R1 "$SAMPLE"_1.fq.gz --R2 "$SAMPLE"_2.fq.gz --cpus 16 --ram 16 --minlen 500 --trim -outdir ../shovill/"$SAMPLE"/ 
 	echo Assembly "$SAMPLE" done ! | tee -a ../"$DATE_TIME"_Illuminapipeline.log
 done
 #moving back to the main directory
 cd ..
+conda deactivate
+
+#selecting and moving needed files 
+#moving to location top perform the following command
+mkdir -p assemblies
+cd shovill/
+#collecting all the contigs.fa files in assemblies folder
+echo "collecting contig files in assemblies/" | tee -a ../"$DATE_TIME"_Illuminapipeline.log
+for d in `ls -d *`; do cp "$d"/contigs.fa ../assemblies/"$d".fna; done
+
+cd ..
+#removing the data that is not needed anymore 
+echo "cleaning fastp and shovill" | tee -a "$DATE_TIME"_Illuminapipeline.log
+rm fastp/*.fq.gz 
+rm shovill/*/*{.fa,.gfa,.corrections,.fasta}
+
+#quast part 
+conda activate quast
+
+echo "performing quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
+for f in assemblies/*.fna; do quast.py $f -o quast/$f;done 
+
+# Create a file to store the QUAST summary table
+echo "making a summary of quast data" | tee -a "$DATE_TIME"_Illuminapipeline.log
+touch quast/quast_summary_table.txt
+
+# Add the header to the summary table
+echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> quast/quast_summary_table.txt
+
+# Initialize a counter
+counter=1
+
+# Loop over all the transposed_report.tsv files and read them
+for file in $(find -type f -name "transposed_report.tsv"); do
+    # Show progress
+    echo "Processing file: $counter"
+
+    # Add the content of each file to the summary table (excluding the header)
+    tail -n +2 $file >> quast/quast_summary_table.txt
+
+    # Increment the counter
+    counter=$((counter+1))
+done
+
 conda deactivate
 
 

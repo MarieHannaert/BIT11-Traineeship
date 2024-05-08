@@ -626,3 +626,38 @@ I think this is too much info for the log file, so I think it's beter to create 
 this is a succes. 
 
 ## Shovill 
+I will now add the part for shovill, for the assembly of the reads. 
+### making test data smaller
+I will make a smaller test data set, so I can test the assembly. because otherwise it will take a long time to test with complete files. 
+I will do this by using the program seqtk.
+
+The command I used to perform this is the following: 
+````
+for sample in `ls *.fq | awk 'BEGIN{FS=".fq"}{print $1}'`; do seqtk sample -s100 $sample.fq 10000 > "$sample"_sub.fq ; done
+
+ pigz *
+
+mv *_sub.fq.gz ../subsample_gz/
+````
+
+the sample -s100 option and the 1000 is for the following: Subsample 10000 read pairs from two large paired FASTQ files (remember to use the same random seed to keep pairing)
+
+after this was performed I reziped it to gz, because I want to test with gz format 
+
+And then I moved them to a other folder so that I have tree folders of test data, one with bz2 files, one with normale gz files, and one with subsampled file of gz. I don't need a sub sample format for bz2 because I tested the part bz2/gz before and it worked so I will keep working with the gz files. 
+### advise of supervisor 
+I need to add removals of data that isn't need anymore. 
+example: after reformating bz2 data to gz data I could remove the bz2 data. 
+This is advised so that I will not use unnecessary data storage. 
+for fastqc I already did this by removing the fastqc folder after performing multiqc. 
+
+but now I will also add it to the step of remormating bz2 
+I did this by adding the following line to the code: /
+
+I don't need to add this in the code because when you decompress and compress and you remove -k option it will remove you original files and replace them. 
+
+and later on when the assembly is done with shovill, I will remove the trimmed reads and only keep the informative files like the JSON and the HTML. 
+
+### further with shovill 
+
+

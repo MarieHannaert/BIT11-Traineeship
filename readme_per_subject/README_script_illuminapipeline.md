@@ -694,3 +694,170 @@ conda deactivate
 To perform this I needed to rename my files form 070_001_240321_001_0355_099_01_4691_2_sub.fq.gz sub_070_0
 01_240321_001_0355_099_01_4691_2.fq.gz form, otherwise they won't be recognised. 
 
+## Extra part for Shovill
+When I performed shovill I did after that an other step of selecting the needed files and putting them in a seperat folder
+The inspiration I use for this part comes from the howto file: **\genomics\mhannaert\howto\rename_shovill_assemblies_howto.txt**
+I can do the following command in my script: 
+````
+for d in `ls -d *`; do cp "$d"/contigs.fa assemblies/"$d".fna; done
+````
+the -d option:-d, --directory  list directories themselves, not their contents
+In my script I fitted it like this: 
+````
+#selecting and moving needed files 
+#moving to location top perform the following command
+mkdir -p assemblies
+cd shovill/
+#collecting all the contigs.fa files in assemblies folder
+echo "collecting contig files in assemblies/" | tee -a ../"$DATE_TIME"_Illuminapipeline.log
+for d in `ls -d *`; do cp "$d"/contigs.fa ../assemblies/"$d".fna; done
+````
+Now I will test agin, output logfile: 
+````
+The user of 2024-05-08_13-26 is: mhannaert
+====================================================================
+the version that are used are:
+FastQC v0.11.9
+# packages in environment at /opt/miniforge3/envs/multiqc:
+multiqc                   1.21               pyhdfd78af_0    bioconda
+====================================================================
+the command that was used is:
+complete_illuminapipeline.sh /home/genomics/mhannaert/data/mini_testdata/subsample_gz/ output_test2 gz 4
+This was performed in the following directory: /home/genomics/mhannaert
+====================================================================
+checking fileformat and reformat if needed
+files are gz, so that's fine
+Performing fastqc
+performing multiqc
+
+  /// MultiQC 🔍 | v1.21
+
+|           multiqc | Search path : /home/genomics/mhannaert/data/mini_testdata/subsample_gz/output_test2/fastqc
+|         searching | ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 76/76  
+|            fastqc | Found 4 reports
+|           multiqc | Report      : multiqc_report.html
+|           multiqc | Data        : multiqc_data
+|           multiqc | MultiQC complete
+removing fastqc/
+Working on trimming genome sub_070_001_240321_001_0355_099_01_4691 with fastp
+Working on trimming genome sub_070_001_240321_001_0356_099_01_4691 with fastp
+Finished trimming
+Assembly sub_070_001_240321_001_0355_099_01_4691 done !
+Assembly sub_070_001_240321_001_0356_099_01_4691 done !
+collecting contig files in assemblies/
+````
+so that worked and I think the content of the logfile looks good 
+I need to also add shovill to the version list, so I add in that part the following line:
+````
+conda activate shovill
+conda list | grep shovill | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
+````
+fastp wasn't added either so I changed that line to: 
+````
+fastp -v >> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+````
+I also want a clean env so as my supervisor advised, so I added the following lines of code: 
+````
+#removing the data that is not needed anymore 
+echo "cleaning fastp and shovill" | tee -a "$DATE_TIME"_Illuminapipeline.log
+rm fastp/*.fq.gz 
+rm shovill/*/*{.fa,.gfa,.corrections,.fasta}
+````
+I also removed the parts about the shovill log file because shovill does this already
+I tested my code again and it worked perfectly
+I tested my code on the following data: 
+**/home/genomics/mhannaert/data/mini_testdata/subsample_gz**
+
+## Quast 
+first I took a look again at the howto file and the existing script: **/home/genomics/mhannaert/howto/quast_howto.txt** **/home/genomics/mhannaert/scripts/quast_summary.sh**
+
+there are two steps I need to do:
+- perform quast 
+- making a summary 
+
+the code I added to the script was the following: 
+````
+#quast part 
+conda activate quast
+#making directory for quast output + making a log file 
+mkdir -p quast 
+touch quast/"$DATE_TIME"_quast.log
+echo "performing quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
+for f in assemblies/*.fna; do quast.py $f -o quast/$f;done | tee -a quast/"$DATE_TIME"_quast.log
+
+# Create a file to store the QUAST summary table
+echo "making a summary of quast data" | tee -a "$DATE_TIME"_Illuminapipeline.log
+touch quast/quast_summary_table.txt
+
+# Add the header to the summary table
+echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> quast/quast_summary_table.txt
+
+# Initialize a counter
+counter=1
+
+# Loop over all the transposed_report.tsv files and read them
+for file in $(find -type f -name "transposed_report.tsv"); do
+    # Show progress
+    echo "Processing file: $counter"
+
+    # Add the content of each file to the summary table (excluding the header)
+    tail -n +2 $file >> quast/quast_summary_table.txt
+
+    # Increment the counter
+    counter=$((counter+1))
+done
+
+conda deactivate
+````
+testing this part of the code. 
+
+quast also makes an own log file, so that I made one isn't needed, so I remove that part from the script 
+I test it now on an other data **/home/genomics/mhannaert/data/mini_testdata/gz_files**, because I got an error that there weren't any contigs of >=500, but I think that is because I work with this sub sampled reads, so I'm going to test that know on an other folder. 
+
+When performd on bigger samples, quast indeed works. 
+
+I also need to add quast to the version list. 
+so I added the following line: 
+````
+conda activate quast
+conda list | grep quast | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
+````
+## Busco
+The following part of the script is Busco, I inspired my code on **/home/genomics/mhannaert/howto/busco_genomics2_howto.txt**
+
+the code I added is: 
+````
+conda activate busco
+
+echo "performing busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
+for sample in `ls assemblies/*.fna | awk 'BEGIN{FS=".fna"}{print $1}'`; do busco -i "$sample".fna -o busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
+
+conda deactivate
+````
+I got some errors as output, that the file doesn't contain nulceotide sequences, so that's weird, When perfomed on all the data it worked, so that part works also 
+
+Als I saw that the map asseblies is created every where, so I think I will remove that part and see the result from that. 
+
+### extra part for busco 
+There was in the howto file a part for making a plot as summary for the busco results so I'm also going to add that to the code, because it's easy to take a look at all the results in 1 figure
+the code I added is: 
+````
+#extra busco part
+#PLOT SUMMARY of busco
+mkdir busco_summaries
+echo "making summary busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
+
+cp busco/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
+cd busco_summaries/ 
+ #to generate a summary plot in PNG
+generate_plot.py -wd .
+#going back to main directory
+cd ..
+````
+The python script generate_plot.Py, I couldn't find it on the server. So I out commented this code, and will ask later at my supervisor. 
+I tested the commands for the first part of this part by selecting and copying the files the the wright directory and that worked, so I thinks this part will work. 
+
+
+

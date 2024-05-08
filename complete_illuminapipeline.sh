@@ -82,6 +82,9 @@ fastp -v >> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda activate shovill
 conda list | grep shovill | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda deactivate
+conda activate quast
+conda list | grep quast | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 #adding the command to the log file
 echo "the command that was used is:"| tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
@@ -179,7 +182,7 @@ rm shovill/*/*{.fa,.gfa,.corrections,.fasta}
 conda activate quast
 
 echo "performing quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
-for f in assemblies/*.fna; do quast.py $f -o quast/$f;done 
+for f in *.fna; do quast.py $f -o quast/$f;done 
 
 # Create a file to store the QUAST summary table
 echo "making a summary of quast data" | tee -a "$DATE_TIME"_Illuminapipeline.log
@@ -205,5 +208,24 @@ done
 
 conda deactivate
 
+#Busco part
+conda activate busco
+
+echo "performing busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
+for sample in `ls *.fna | awk 'BEGIN{FS=".fna"}{print $1}'`; do busco -i "$sample".fna -o busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
+
+conda deactivate
+
+#extra busco part
+#PLOT SUMMARY of busco
+# mkdir busco_summaries
+# echo "making summary busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
+
+# cp busco/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
+# cd busco_summaries/ 
+ #to generate a summary plot in PNG
+# generate_plot.py -wd .
+#going back to main directory
+# cd ..
 
 

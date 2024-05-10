@@ -1050,10 +1050,8 @@ I runned the script again on the subsampled data **/home/genomics/mhannaert/data
 So maybe It is because of the subsamples 
 so I will now run it on the gz samples. 
 After performing it on the complete gz files, the script works. 
-the out put of the log file is the following: 
-````
 
-````
+
 
 ## addings from supervisor 
 - output from skani and quast to xlsx -> python? 
@@ -1145,14 +1143,72 @@ was found in the log file about the python script, so now I will fix that
 I forgot to execute chmod u+x on th script file
 so now I will run it again
 so maybe it is nothing on the script 
-````
+-> indeed now everything worked , so it was because of the subsampeling
 
-````
 ## Showing assemblies in beeswarnplots  
 I think I will also make a small R script for this because that is prob the easiest way from the bash script. 
 My R script is the following: 
 ````
+#install.packages("beeswarm")
+#adding the location argument for the quast summary table from the bash script
+#the argument needs to be the path to the quast summary file
+args <- commandArgs(trailingOnly = TRUE)
+location <- args[1]
 
+#reading in the data file from quast
+quast_summary_table <- read.delim(location)
+#quast_summary_table <- read.delim("/home/genomics/mhannaert/data/mini_testdata/gz_files/output_test4/quast/quast_summary_table.txt")
+
+#open PNG file to save
+png("beeswarm_vis_assemblies.png")
+
+#making one figure with two beeswarm plots
+par(mfrow = c(1,2))
+library(beeswarm)
+#beeswarm plot of contigs
+beeswarm(quast_summary_table$contigs,
+         pch = 19, ylab = "contigs",
+         col = c("#3FA0FF", "#FFE099", "#F76D5E"))
+#beeswarm plot of N50
+beeswarm(quast_summary_table$N50,
+         pch = 19, ylab = "N50",
+         col = c("#3FA0FF", "#FFE099", "#F76D5E"))
+
+#savind the figure that was made as a png 
+dev.off()
 ````
-Rscript Volcano.R ./outputs/deseq2_DEGs.csv 
+Not in the script works it
+now I'm going to test it in the script 
+first maybe with the subdata
+-> the /home/genomics/mhannaert/scripts/beeswarm_vis_assemblies.R could not be found in the bash script 
+So I need to perform it in an other way
+I will now try first to perfomr the R script in the command line 
+when I try the following command, then I got the following output: 
+````
+beeswarm_vis_assemblies.R /home/genomics/mhannaert/data/mini_testdata/bz2_files/output_test4/quast/quast_summary_table.txt
+/home/genomics/mhannaert/scripts/beeswarm_vis_assemblies.R: line 4: syntax error near unexpected token `('
+/home/genomics/mhannaert/scripts/beeswarm_vis_assemblies.R: line 4: `args <- commandArgs(trailingOnly = TRUE)'
+````
+So I think I can just perform a R script like I perform an python script 
+Only there is an error in my R script 
+blackbox AI advised me to add a shebang line to my R script 
+In the terminal I now got the following error: 
+````
+null device
+          1
+````
+I asked my supervisor and he says we're going to take a look togheter next week to solve this problem. 
+I only run it once again because I want to check the influence of the shebang line that I added: 
+````
+null device
+          1
+````
+This is apperently not an error, the beeswarmplot was made. 
 
+## BIG test
+over the weekend I will run the script on 75 samples. 
+This was the command I used: 
+````
+ complete_illuminapipeline.sh /home/genomics/mhannaert/data/00_reads/ output_75samples bz2 16
+````
+I performed this command in a tmux session. 

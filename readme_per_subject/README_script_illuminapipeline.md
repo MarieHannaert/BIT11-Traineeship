@@ -922,7 +922,7 @@ echo "end of primary analysis for Illumina or short reads" | tee -a "$DATE_TIME"
 I just need to perform the extra busco part in the enviroment and then it works so I added it again. 
 This part worked. 
 
-### addings that my supervisor advised: 
+### addings what my supervisor advised: 
 - kraken2, toetevoegen achter multiqc
 - krona
 - skANI
@@ -931,4 +931,210 @@ other options I will do friday:
 - checking which busco folders are needed 
 
 Also in the beginning I ask for CPU's so I will replace all the hard coded CPU with $4 
+
+## Kraken2 and Krona
+from the previous script I made for kraken2 (**/home/genomics/mhannaert/scripts/Kraken2.sh**) I used the code: 
+````
+mkdir mkdir -p "$OUT"/Kraken_krona
+touch "$OUT"/Kraken_krona/"$DATE_TIME"_kraken.log
+touch "$OUT"/Kraken_krona/"$DATE_TIME"_krona.log
+#Kraken2
+for sample in `ls *.fq.gz | awk 'BEGIN{FS=".fq.*"}{print $1}'`
+do
+    #running Kraken2 on each sample
+    echo "Running Kraken2 on $sample" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+    kraken2 --gzip-compressed "$sample".fq.gz --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/Kraken_krona/"$sample"_kraken2.report --threads $4 --quick --memory-mapping 2>> "$OUT"/Kraken_krona/"$DATE_TIME"_kraken.log
+
+    #running Krona on the report
+    echo "Running Krona on $sample" |tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+    ktImportTaxonomy -t 5 -m 3 -o "$OUT"/Kraken_krona/"$sample"_krona.html "$OUT"/Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/Kraken_krona/"$DATE_TIME"_krona.log
+
+    #removing the kraken reports after using these for krona
+    echo "Removing kraken2 report" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+    rm "$OUT"/Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+
+done
+
+echo "Finished running Kraken2 and Krona " | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+````
+I forgot to activate the krona env. because my previouse script I performed it in that env. 
+now I run it again: 
+````
+The user of 2024-05-10_09-22 is: mhannaert
+====================================================================
+the version that are used are:
+FastQC v0.11.9
+# packages in environment at /opt/miniforge3/envs/multiqc:
+multiqc                   1.21               pyhdfd78af_0    bioconda
+Kraken version 2.1.2
+Copyright 2013-2021, Derrick Wood (dwood@cs.jhu.edu)
+# packages in environment at /opt/miniforge3/envs/krona:
+krona                     2.8.1           pl5321hdfd78af_1    bioconda
+# packages in environment at /opt/miniforge3/envs/shovill:
+shovill                   1.1.0                hdfd78af_1    bioconda
+# packages in environment at /opt/miniforge3/envs/quast:
+quast                     5.2.0           py310pl5321h6cc9453_3    bioconda
+# packages in environment at /opt/miniforge3/envs/busco:
+busco                     5.7.1              pyhdfd78af_0    bioconda
+====================================================================
+the command that was used is:
+complete_illuminapipeline.sh /home/genomics/mhannaert/data/mini_testdata/subsample_gz/ output_test4 gz 4
+This was performed in the following directory: /home/mhannaert
+====================================================================
+checking fileformat and reformat if needed
+files are gz, so that's fine
+Performing fastqc
+performing multiqc
+
+  /// MultiQC 🔍 | v1.21
+
+|           multiqc | Search path : /home/genomics/mhannaert/data/mini_testdata/subsample_gz/output_test4/fastqc
+|         searching | ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 76/76  
+|            fastqc | Found 4 reports
+|           multiqc | Report      : multiqc_report.html
+|           multiqc | Data        : multiqc_data
+|           multiqc | MultiQC complete
+removing fastqc/
+Running Kraken2 on sub_070_001_240321_001_0355_099_01_4691_1
+Running Krona on sub_070_001_240321_001_0355_099_01_4691_1
+Removing kraken2 report
+Running Kraken2 on sub_070_001_240321_001_0355_099_01_4691_2
+Running Krona on sub_070_001_240321_001_0355_099_01_4691_2
+Removing kraken2 report
+Running Kraken2 on sub_070_001_240321_001_0356_099_01_4691_1
+Running Krona on sub_070_001_240321_001_0356_099_01_4691_1
+Removing kraken2 report
+Running Kraken2 on sub_070_001_240321_001_0356_099_01_4691_2
+Running Krona on sub_070_001_240321_001_0356_099_01_4691_2
+Removing kraken2 report
+Finished running Kraken2 and Krona 
+Working on trimming genome sub_070_001_240321_001_0355_099_01_4691 with fastp
+Working on trimming genome sub_070_001_240321_001_0356_099_01_4691 with fastp
+Finished trimming
+Assembly sub_070_001_240321_001_0355_099_01_4691 done !
+Assembly sub_070_001_240321_001_0356_099_01_4691 done !
+collecting contig files in assemblies/
+cleaning fastp and shovill
+performing quast
+making a summary of quast data
+performing busco
+making summary busco
+end of primary analysis for Illumina or short reads
+````
+The kraken2 and krona worked in the script 
+
+## skANI
+a command I previous used to perform skani: 
+````
+skani search *_spades.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o skani_results_file.txt -t 24 -n 1
+````
+This is also a conda env
+Als I see that the input a .fna file is, So it looks like it must be performed after the assemblies, because there my output is a fna file
+so I will add it to te script in the following way: 
+````
+# performing skani
+conda activate skani 
+#making a directory and a log file 
+mkdir skani 
+touch skani/"$DATE_TIME"_skani.log
+echo "performing skani" | tee -a "$DATE_TIME"_Illuminapipeline.log
+#command to perform skani on the 
+skani search assemblies/*.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o skani/skani_results_file.txt -t 24 -n 1 2>> skani/"$DATE_TIME"_skani.log
+conda deactivate 
+````
+I runned the script again on the subsampled data **/home/genomics/mhannaert/data/mini_testdata/subsample_gz**:
+````
+[00:00:12.022] (7f72881f4800) WARN   assemblies/sub_070_001_240321_001_0355_099_01_4691.fna is not a valid fasta/fastq file; skipping.
+[00:00:12.022] (7f72881f4800) WARN   assemblies/sub_070_001_240321_001_0356_099_01_4691.fna is not a valid fasta/fastq file; skipping.
+````
+So maybe It is because of the subsamples 
+so I will now run it on the gz samples. 
+After performing it on the complete gz files, the script works. 
+the out put of the log file is the following: 
+````
+
+````
+
+## addings from supervisor 
+- output from skani and quast to xlsx -> python? 
+- assemblies showing in beeswarm plots -> via R
+
+## skani and quast to xlsx 
+I will run first the script on the complete gz data **/home/genomics/mhannaert/data/mini_testdata/gz_files**, so that I have a clear vieuw on the outputs I got and see how I need to reformat them. A good idea is that I will make a seperate python script that I can run out of bash script, because it is easier to reformat to a xlsx out with python. 
+
+The new script is located: **/home/genomics/mhannaert/scripts/skani_quast_to_xlsx.py**`
+My first try for writing a script like that 
+````
+#!/usr/bin/python3
+import os
+#import sys
+import csv
+from openpyxl import Workbook
+
+#import the location of the argument line, this location comes from the bashscript scripts/complete_illuminapipeline.sh
+#If you want to use this script without the bash script you can use the following command line
+location ="/home/genomics/mhannaert/data/mini_testdata/gz_files/output_test4/"
+
+#location =  sys.argv[1]
+
+#going to the location for the output file
+os.chdir(location)
+print("\nThe output file can be found in: ", os.getcwd())
+
+#opening a xlsx document 
+wb = Workbook() 
+ws = wb.active 
+
+#making a first sheet for skANI
+ws.title = "skANI_output"
+with open('skani/skani_results_file.txt') as csv_file:
+    csv_reader = csv.reader(csv_file, delimiter='   ')
+    line_count = 0
+    for row in csv_reader:
+        ws.append(row)
+        line_count += 1
+    print("Processed {} lines.".format(line_count))
+csv_file.close()
+
+#making a second sheet for Quast
+ws2 = wb.create_sheet(title="Quast_output")
+with open('quast/quast_summary_table.txt') as csv_file:
+    csv_reader = csv.reader(csv_file, delimiter='   ')
+    line_count = 0
+    for row in csv_reader:
+        ws2.append(row)
+        line_count += 1
+    print("Processed {} lines.".format(line_count))
+csv_file.close()
+
+#closing the workbook and saving it with the following name
+wb.save("skANI_Quast_output.xlsx")
+print("\nskANI_Quast_output.xlsx is made in: ", os.getcwd())
+````
+I will first try it hard coded before entering it in the bashscript 
+after first run: 
+````
+/bin/python /home/genomics/mhannaert/scripts/skani_quast_to_xlsx.py
+
+The output file can be found in:  /home/genomics/mhannaert/data/mini_testdata/gz_files/output_test4
+Traceback (most recent call last):
+  File "/home/genomics/mhannaert/scripts/skani_quast_to_xlsx.py", line 24, in <module>
+    csv_reader = csv.reader(csv_file, delimiter='   ')
+TypeError: "delimiter" must be a 1-character string
+````
+it's "\t" then "    " when importing a tab delimiter 
+try again: 
+````
+The output file can be found in:  /home/genomics/mhannaert/data/mini_testdata/gz_files/output_test4
+Processed 3 lines.
+Processed 3 lines.
+
+skANI_Quast_output.xlsx is made in:  /home/genomics/mhannaert/data/mini_testdata/gz_files/output_test4
+````
+hard coded it worked, now I will add it to the bash script: 
+````
+#part were I make a xlsx file of the skANI output and the Quast output 
+echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
+skani_quast_to_xlsx.py "$DIR"/"$OUT"/ 2>> "$DATE_TIME"_Illuminapipeline.log
+````
 

@@ -1137,4 +1137,22 @@ hard coded it worked, now I will add it to the bash script:
 echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
 skani_quast_to_xlsx.py "$DIR"/"$OUT"/ 2>> "$DATE_TIME"_Illuminapipeline.log
 ````
+I runned the code on the bz data: 
+````
+/home/genomics/mhannaert/scripts/complete_illuminapipeline.sh: line 257: /home/genomics/mhannaert/scripts/skani_quast_to_xlsx.py: Permission denied
+````
+was found in the log file about the python script, so now I will fix that 
+I forgot to execute chmod u+x on th script file
+so now I will run it again
+so maybe it is nothing on the script 
+````
+
+````
+## Showing assemblies in beeswarnplots  
+I think I will also make a small R script for this because that is prob the easiest way from the bash script. 
+My R script is the following: 
+````
+
+````
+Rscript Volcano.R ./outputs/deseq2_DEGs.csv 
 

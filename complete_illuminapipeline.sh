@@ -256,6 +256,10 @@ conda deactivate
 echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
 skani_quast_to_xlsx.py "$DIR"/"$OUT"/ 2>> "$DATE_TIME"_Illuminapipeline.log
 
+#part for beeswarm visualisation of assemblies 
+echo "making beeswarm visualisation of assemblies" | tee -a "$DATE_TIME"_Illuminapipeline.log
+beeswarm_vis_assemblies.R "$DIR/$OUT/quast/quast_summary_table.txt" 2>> "$DATE_TIME"_Illuminapipeline.log
+
 #Busco part
 conda activate busco
 

@@ -76,14 +76,22 @@ fastqc -v | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda activate multiqc
 conda list | grep multiqc | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda deactivate
-
+kraken2 -v | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda activate krona
+conda list | grep krona | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
 fastp -v >> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
-
 conda activate shovill
 conda list | grep shovill | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda deactivate
+conda activate skani 
+conda list | grep skani | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate 
 conda activate quast
 conda list | grep quast | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
+conda activate busco
+conda list | grep busco | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda deactivate
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 #adding the command to the log file
@@ -128,9 +136,35 @@ rm -rd fastqc/ 2>> "$DATE_TIME"_Illuminapipeline.log
 #deactivating the mamba env
 conda deactivate
 
-#now perfroming fastp on the samples
 #going back up to the samples
 cd ..
+
+#kraken2 and krona part
+conda activate krona
+mkdir -p "$OUT"/Kraken_krona
+touch "$OUT"/Kraken_krona/"$DATE_TIME"_kraken.log
+touch "$OUT"/Kraken_krona/"$DATE_TIME"_krona.log
+#Kraken2
+for sample in `ls *.fq.gz | awk 'BEGIN{FS=".fq.*"}{print $1}'`
+do
+    #running Kraken2 on each sample
+    echo "Running Kraken2 on $sample" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+    kraken2 --gzip-compressed "$sample".fq.gz --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/Kraken_krona/"$sample"_kraken2.report --threads $4 --quick --memory-mapping 2>> "$OUT"/Kraken_krona/"$DATE_TIME"_kraken.log
+
+    #running Krona on the report
+    echo "Running Krona on $sample" |tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+    ktImportTaxonomy -t 5 -m 3 -o "$OUT"/Kraken_krona/"$sample"_krona.html "$OUT"/Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/Kraken_krona/"$DATE_TIME"_krona.log
+
+    #removing the kraken reports after using these for krona
+    echo "Removing kraken2 report" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+    rm "$OUT"/Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+
+done
+
+echo "Finished running Kraken2 and Krona " | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
+
+#now perfroming fastp on the samples
 #making a folder for the trimmed samples
 mkdir -p "$OUT"/fastp
 touch "$OUT"/fastp/"$DATE_TIME"_fastp.log
@@ -178,11 +212,21 @@ echo "cleaning fastp and shovill" | tee -a "$DATE_TIME"_Illuminapipeline.log
 rm fastp/*.fq.gz 
 rm shovill/*/*{.fa,.gfa,.corrections,.fasta}
 
+# performing skani
+conda activate skani 
+#making a directory and a log file 
+mkdir skani 
+touch skani/"$DATE_TIME"_skani.log
+echo "performing skani" | tee -a "$DATE_TIME"_Illuminapipeline.log
+#command to perform skani on the 
+skani search assemblies/*.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o skani/skani_results_file.txt -t 24 -n 1 2>> skani/"$DATE_TIME"_skani.log
+conda deactivate 
+
 #quast part 
 conda activate quast
 
 echo "performing quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
-for f in *.fna; do quast.py $f -o quast/$f;done 
+for f in assemblies/*.fna; do quast.py $f -o quast/$f;done 
 
 # Create a file to store the QUAST summary table
 echo "making a summary of quast data" | tee -a "$DATE_TIME"_Illuminapipeline.log
@@ -208,24 +252,31 @@ done
 
 conda deactivate
 
+#part were I make a xlsx file of the skANI output and the Quast output 
+echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
+skani_quast_to_xlsx.py "$DIR"/"$OUT"/ 2>> "$DATE_TIME"_Illuminapipeline.log
+
 #Busco part
 conda activate busco
 
 echo "performing busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
-for sample in `ls *.fna | awk 'BEGIN{FS=".fna"}{print $1}'`; do busco -i "$sample".fna -o busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
-
-conda deactivate
+for sample in `ls assemblies/*.fna | awk 'BEGIN{FS=".fna"}{print $1}'`; do busco -i "$sample".fna -o busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
 
 #extra busco part
 #PLOT SUMMARY of busco
-# mkdir busco_summaries
-# echo "making summary busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
+mkdir busco_summaries
+echo "making summary busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
 
-# cp busco/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
-# cd busco_summaries/ 
- #to generate a summary plot in PNG
-# generate_plot.py -wd .
+cp busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
+cd busco_summaries/ 
+#to generate a summary plot in PNG
+generate_plot.py -wd .
 #going back to main directory
-# cd ..
+cd ..
+
+conda deactivate
+
+#End of primary analysis
+echo "end of primary analysis for Illumina or short reads" | tee -a "$DATE_TIME"_Illuminapipeline.log
 
 

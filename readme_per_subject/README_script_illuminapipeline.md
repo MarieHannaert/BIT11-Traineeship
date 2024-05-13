@@ -1212,3 +1212,189 @@ This was the command I used:
  complete_illuminapipeline.sh /home/genomics/mhannaert/data/00_reads/ output_75samples bz2 16
 ````
 I performed this command in a tmux session. 
+It all worked, and I got nice summary results 
+
+## Feedback 
+I looked at the complete script with my supervisor and he was very happy about the script. But he had some additions that would make the script complete: 
+- naming my folders with 00, 01, .. so that the steps are clear 
+- add licence 
+- add version that can be called with an options 
+- changing back ticks 
+- looking with shellcheck 
+- making a loop for the busco summary figure 
+
+links: 
+
+https://www.shellcheck.net/wiki/SC1010
+
+https://opensource.org/license/mit
+
+an addition from me is 
+- adding time stamps in to the log file
+- add a specific log file for krona en krona
+- add specific log fastp
+
+
+when I add all this he said my script will be more than complete
+## Making feedback happen 
+Here I will do everything that was asked for 
+### Directory names
+
+ I will just add 00_, 01_ to each directory name 
+ the following directories will be made: 
+ - 00_fastqc
+ - 01_multiqc I added the following part: 
+````
+#renaming the multiqc directory 
+mv multiqc_data/ 01_multiqc
+mv multiqc_report.html 01_multiqc/ 
+````
+- 02_Kraken_krona
+- 03_fastp
+- 04_shovill
+-> I will not rename assemblies directory because it's more like an output directory that will be used in multiple steps
+- 05_skani
+- 06_quast
+- 07_busco
+
+I also need to update my other scripts were I use these directories: 
+**scripts/skani_quast_to_xlsx.py**
+**/home/genomics/mhannaert/scripts/beeswarm_vis_assemblies.R**
+
+### Adding timestamp to the log file 
+I will add befor each step 
+````
+echo "start ... at" $(date '+%H:%M')
+echo "end .... at" $(date '+%H:%M')
+```` 
+
+I added the following lines to the script: 
+````
+echo "The analysis started at" $(date '+%Y/%m/%d_%H:%M') | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+echo "checking fileformat and reformat if needed at" $(date '+%H:%M') | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+echo "File reformatting done and starting fastqc at" $(date '+%H:%M') | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+echo "fastqc done, starting multiqc at" $(date '+%H:%M') | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+echo "multiqc done, starting Kraken and krona at" $(date '+%H:%M') | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+echo "Finished running Kraken2 and Krona and starting fastp at" $(date '+%H:%M')  | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+echo "Finished trimming with fastp and starting shovill at" $(date '+%H:%M') | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+echo "Finished Shovill and starting skANI at" $(date '+%H:%M') | tee -a "$DATE_TIME"_Illuminapipeline.log
+echo "Finished skANI and starting Quast at" $(date '+%H:%M') | tee -a "$DATE_TIME"_Illuminapipeline.log
+echo "Finished Quast and starting Busco at" $(date '+%H:%M') | tee -a "$DATE_TIME"_Illuminapipeline.log
+echo "end of primary analysis for Illumina or short reads at" $(date '+%Y/%m/%d_%H:%M') | tee -a "$DATE_TIME"_Illuminapipeline.log
+````
+### Making specific log for kraken2, krona, fastp
+
+Because in the common log file these steps take a lot of place, I will make a log file specific for kraken and krona and one for fastp 
+
+I modified the following parts of code
+````
+for sample in `ls *.fq.gz | awk 'BEGIN{FS=".fq.*"}{print $1}'`
+do
+    #running Kraken2 on each sample
+    echo "Running Kraken2 on $sample" | tee -a "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
+    kraken2 --gzip-compressed "$sample".fq.gz --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/02_Kraken_krona/"$sample"_kraken2.report --threads $4 --quick --memory-mapping 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
+
+    #running Krona on the report
+    echo "Running Krona on $sample" |tee -a "$OUT"/02_Kraken_krona/"$DATE_TIME"_krona.log
+    ktImportTaxonomy -t 5 -m 3 -o "$OUT"/02_Kraken_krona/"$sample"_krona.html "$OUT"/02_Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_krona.log
+
+    #removing the kraken reports after using these for krona
+    echo "Removing kraken2 report" | tee -a "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
+    rm "$OUT"/02_Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
+done
+````
+````
+mkdir -p "$OUT"/03_fastp
+touch "$OUT"/03_fastp/"$DATE_TIME"_fastp.log
+#loop over read files
+echo "performing trimming with fastp" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+for g in `ls *_1.fq.gz | awk 'BEGIN{FS="_1.fq.gz"}{print $1}'`
+do
+    echo "Working on trimming genome $g with fastp" 
+    fastp -w 32 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o "$OUT"/03_fastp/"$g"_1.fq.gz -O "$OUT"/03_fastp/"$g"_2.fq.gz -h "$OUT"/03_fastp/"$g"_fastp.html -j "$OUT"/03_fastp/"$g"_fastp.json --detect_adapter_for_pe 2>> "$OUT"/03_fastp/"$DATE_TIME"_fastp.log
+done
+echo "Finished trimming with fastp and starting shovill at" $(date '+%H:%M') | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+````
+### Test run after first changes
+Before making bigger changes to the script I will first test it, so that these changes already work for sure. 
+I runned the script agin on the test data: 
+**/home/genomics/mhannaert/data/mini_testdata/gz_files**
+result: 
+
+Some errors around the skani pat, I overlooked some directory names that were changed, so I checked again all the directorynames
+
+Now it all worked again the log file looks like this: 
+````
+The user of 2024-05-13_13-20 is: mhannaert
+====================================================================
+the version that are used are:
+FastQC v0.11.9
+# packages in environment at /opt/miniforge3/envs/multiqc:
+multiqc                   1.21               pyhdfd78af_0    bioconda
+Kraken version 2.1.2
+Copyright 2013-2021, Derrick Wood (dwood@cs.jhu.edu)
+# packages in environment at /opt/miniforge3/envs/krona:
+krona                     2.8.1           pl5321hdfd78af_1    bioconda
+# packages in environment at /opt/miniforge3/envs/shovill:
+shovill                   1.1.0                hdfd78af_1    bioconda
+# packages in environment at /opt/miniforge3/envs/skani:
+skani                     0.2.1                h4ac6f70_0    bioconda
+# packages in environment at /opt/miniforge3/envs/quast:
+quast                     5.2.0           py310pl5321h6cc9453_3    bioconda
+# packages in environment at /opt/miniforge3/envs/busco:
+busco                     5.7.1              pyhdfd78af_0    bioconda
+====================================================================
+the command that was used is:
+complete_illuminapipeline.sh /home/genomics/mhannaert/data/mini_testdata/gz_files/ output_test5 gz 16
+This was performed in the following directory: /home/genomics/mhannaert
+====================================================================
+The analysis started at 2024/05/13_13:20
+checking fileformat and reformat if needed at 13:20
+files are gz, so that's fine
+File reformatting done and starting fastqc at 13:20
+Performing fastqc
+fastqc done, starting multiqc at 13:21
+performing multiqc
+
+  /// MultiQC 🔍 | v1.21
+
+|           multiqc | Search path : /home/genomics/mhannaert/data/mini_testdata/gz_files/output_test5/00_fastqc
+|         searching | ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 76/76  
+|            fastqc | Found 4 reports
+|           multiqc | Report      : multiqc_report.html
+|           multiqc | Data        : multiqc_data
+|           multiqc | MultiQC complete
+removing 00_fastqc/
+multiqc done, starting Kraken and krona at 13:21
+Finished running Kraken2 and Krona and starting fastp at 13:30
+performing trimming with fastp
+Finished trimming with fastp and starting shovill at 13:31
+Assembly done!
+collecting contig files in assemblies/
+removing fastp samples
+Finished Shovill and starting skANI at 13:48
+performing skani
+Finished skANI and starting Quast at 13:49
+performing quast
+making a summary of quast data
+making xlsx of skANI and quast
+making beeswarm visualisation of assemblies
+Finished Quast and starting Busco at 13:49
+performing busco
+making summary busco
+end of primary analysis for Illumina or short reads at 2024/05/13_13:53
+````
+
+### Busco loop 
+I have a directory with all the samples in. So I need a loop with a counter. 
+At the moment I just perform generate_plot.py in the current directory, so maybe it's an idea to move the samples in a tmp directory there perform the plot and then move them back or something like that. 
+And doing that via a loop. 
+
+I checked the -h for the generate_plot.py
+-wd is defining the working directory 
+
+When I read the help page it looks like I will make multiple different directories and perform then the script in each directory. 
+
+So the loop needs to be moving the files in to different direcotries. 
+
+

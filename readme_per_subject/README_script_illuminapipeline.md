@@ -1396,5 +1396,89 @@ I checked the -h for the generate_plot.py
 When I read the help page it looks like I will make multiple different directories and perform then the script in each directory. 
 
 So the loop needs to be moving the files in to different direcotries. 
+ with the help of blackbox AI I added the following part of code: 
+ ````
+ i=1
+for file in 07_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt; do
+    mkdir -p busco_summaries/${i}
+    cp "$file" busco_summaries/${i}/
+    ((i % 5 == 0)) && (cd busco_summaries/${i} && generate_plot.py -wd. && cd..)
+    ((i++))
+done
+ ````
+ I tested this part:
+It looks like it worked, but to know I must perform this on the 75 samples, so I will do this at the end of the day. and then see tomorrow. 
+
+### Adding bash options
+based on the bash_options.sh script I got from my supervisor I added the following part in to my script, I fitted in the place were the arguments are checked. 
+````
+##checking for parameters
+function usage(){
+	errorString="Running this Illumina pipeline script requires 4 parameters:\n
+    1. Path of the folder with fastq.gz files.\n
+    2. Name of the output folder.\n
+    3. Type of compression (gz or bz2)\n
+    4. Number of threads to use.";
+
+	echo -e ${errorString};
+	exit 1;
+}
+function Help()
+{
+   # Display Help
+   echo "Add description of the script functions here."
+   echo
+   echo "Syntax: scriptTemplate [-g|h|v]"
+   echo "options:"
+   echo "g     Print the GPL license notification."
+   echo "h     Print this Help."
+   echo "v     Print version of script and exit."
+   
+}
+
+if [ "$#" -ne 4 ]; then
+    while getopts ":vhg:" option; do
+        case $option in
+            h) # display Help
+                Help
+                exit;;
+            g) # Print the GPL license notification
+                echo "Copyright 2024 Marie Hannaert"
+                exit;;
+            v) # Print version of script and exit
+                echo "complete_illuminapipeline script version 1.0"
+                exit;;
+            \?) # Invalid option
+                usage;;
+        esac
+    done
+fi
+````
+Ity didn't work, I went directly to the next step of checking the input directory. 
+I deleted this part completly and tried again: 
+````
+while getopts ":vhg:" option; do
+    case $option in
+        h) # display Help
+            Help
+            exit;;
+        g) # Print the GPL license notification
+            echo "Copyright 2024 Marie Hannaert"
+            exit;;
+        v) # Print version of script and exit
+            echo "complete_illuminapipeline script version 1.0"
+            exit;;
+        \?) # Invalid option
+            usage;;
+    esac
+done
+
+if [ "$#" -ne 4 ]; then
+    usage
+fi
+````
+I chanched it to this, because I think it's better to perfom them apart. 
+
+Still doesn't work, I will look at it tomorrow with my supervisor. 
 
 

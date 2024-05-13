@@ -1481,4 +1481,10 @@ I chanched it to this, because I think it's better to perfom them apart.
 
 Still doesn't work, I will look at it tomorrow with my supervisor. 
 
+### shell check 
+I check my script on advise of my supervisor with the following site: 
+https://www.shellcheck.net/
 
+I changed the recommanded thing there and then replaced my script with the improved script from there. 
+
+I will now run the script over night to check all the changes like busco loop. 

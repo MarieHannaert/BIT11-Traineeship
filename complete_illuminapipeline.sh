@@ -20,16 +20,15 @@ unset __conda_setup
 
 
 
-##checking for parameters
 function usage(){
-	errorString="Running this Illumina pipeline script requires 4 parameters:\n
+    errorString="Running this Illumina pipeline script requires 4 parameters:\n
     1. Path of the folder with fastq.gz files.\n
     2. Name of the output folder.\n
     3. Type of compression (gz or bz2)\n
     4. Number of threads to use.";
 
-	echo -e "${errorString}";
-	exit 1;
+    echo -e "${errorString}";
+    exit 1;
 }
 
 function Help()
@@ -37,33 +36,42 @@ function Help()
    # Display Help
    echo "Add description of the script functions here."
    echo
-   echo "Syntax: scriptTemplate [-g|h|v]"
+   echo "Syntax: scriptTemplate [-g|h|v|u]"
    echo "options:"
    echo "g     Print the license notification."
    echo "h     Print this Help."
    echo "v     Print version of script and exit."
-   
+   echo "u     Print usage of script and exit."
 }
 
-while getopts ":vhg:" option; do
+while getopts ":gvuh" option; do
     case $option in
         h) # display Help
             Help
             exit;;
-        g) # Print the GPL license notification
-            echo "Copyright 2024 Marie Hannaert"
+        g) # Print the license notification
+            echo "Copyright 2024 Marie Hannaert (ILVO) 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."
             exit;;
         v) # Print version of script and exit
             echo "complete_illuminapipeline script version 1.0"
             exit;;
+        u) # display usage
+            usage;;
         \?) # Invalid option
             usage;;
     esac
 done
 
 if [ "$#" -ne 4 ]; then
-   usage
+  usage
 fi
+
 
 
 #defining the needed parameters 
@@ -90,7 +98,7 @@ while true; do
 done
 
 #going to the input directory
-cd "$DIR || exit" || exit
+cd "$DIR"
 
 #making the output directory 
 mkdir -p "$OUT"
@@ -128,7 +136,7 @@ echo "====================================================================" | te
 #adding the command to the log file
 echo "the command that was used is:"| tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 echo "complete_illuminapipeline.sh" "$1" "$2" "$3" "$4" |tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
-echo "This was performed in the following directory: \n $START_DIR" |tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+echo "This was performed in the following directory:$START_DIR" |tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 
 echo "The analysis started at" "$(date '+%Y/%m/%d_%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
@@ -162,7 +170,7 @@ fastqc -t 32 *.gz --extract -o "$OUT"/00_fastqc
 echo "fastqc done, starting multiqc at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 conda activate multiqc 
 #perfomring the multiqc on the fastqc samples
-cd "$OUT || exit" || exit
+cd "$OUT"
 echo performing multiqc | tee -a "$DATE_TIME"_Illuminapipeline.log
 multiqc 00_fastqc 2>> "$DATE_TIME"_Illuminapipeline.log
 echo removing 00_fastqc/ | tee -a "$DATE_TIME"_Illuminapipeline.log
@@ -187,8 +195,8 @@ for sample in $(ls *.fq.gz | awk 'BEGIN{FS=".fq.*"}{print $1}')
 do
     #running Kraken2 on each sample
     echo "Running Kraken2 on $sample" | tee -a "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
-    kraken2 --gzip-compressed "$sample".fq.gz --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/02_Kraken_krona/"$sample"_kraken2.report --threads "$4" --quick --memory-mapping 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
-
+    #kraken2 --gzip-compressed "$sample".fq.gz --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/02_Kraken_krona/"$sample"_kraken2.report --threads "$4" --quick --memory-mapping 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
+    kraken2 --gzip-compressed "$sample".fq.gz --db /var/db/kraken2/Standard --report "$OUT"/02_Kraken_krona/"$sample"_kraken2.report --threads "$4" --quick --memory-mapping 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
     #running Krona on the report
     echo "Running Krona on $sample" |tee -a "$OUT"/02_Kraken_krona/"$DATE_TIME"_krona.log
     ktImportTaxonomy -t 5 -m 3 -o "$OUT"/02_Kraken_krona/"$sample"_krona.html "$OUT"/02_Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_krona.log
@@ -220,7 +228,7 @@ conda activate shovill
 #making a folder for the output 
 mkdir -p "$OUT"/04_shovill
 #moving in to the file with the needed samples
-cd "$OUT"/03_fastp/ || exit
+cd "$OUT"/03_fastp/
 
 FILES=(*_1.fq.gz)
 #loop over all files in $FILES and do the assembly for each of the files
@@ -240,7 +248,7 @@ conda deactivate
 #selecting and moving needed files 
 #moving to location top perform the following command
 mkdir -p assemblies
-cd 04_shovill/ || exit
+cd 04_shovill/
 #collecting all the contigs.fa files in assemblies folder
 echo "collecting contig files in assemblies/" | tee -a ../"$DATE_TIME"_Illuminapipeline.log
 for d in $(ls -d *); do cp "$d"/contigs.fa ../assemblies/"$d".fna; done
@@ -257,7 +265,7 @@ echo "Finished Shovill and starting skANI at $(date '+%H:%M')" | tee -a "$DATE_T
 # performing skani
 conda activate skani 
 #making a directory and a log file 
-mkdir 05_skani 
+mkdir -p 05_skani 
 touch 05_skani/"$DATE_TIME"_skani.log
 echo "performing skani" | tee -a "$DATE_TIME"_Illuminapipeline.log
 #command to perform skani on the 
@@ -314,21 +322,27 @@ for sample in $(ls assemblies/*.fna | awk 'BEGIN{FS=".fna"}{print $1}'); do busc
 
 #extra busco part
 #PLOT SUMMARY of busco
-mkdir busco_summaries
+mkdir -p busco_summaries
 echo "making summary busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
 
-#cp 07_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
-#cd busco_summaries/ 
+cp 07_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
+cd busco_summaries/ 
 #to generate a summary plot in PNG
 #generate_plot.py -wd .
-#going back to main directory
-i=1
-for file in 07_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt; do
-    mkdir -p busco_summaries/${i}
-    cp "$file" busco_summaries/${i}/
-    ((i % 5 == 0)) && (cd busco_summaries/${i} && generate_plot.py -wd . && cd ..)
-    ((i++))
+
+
+for i in $(seq 1 15 $(ls -1 | wc -l)); do
+  echo "Verwerking van bestanden $i tot $((i+14))"
+  mkdir -p part_"$i-$((i+14))"
+  ls -1 | tail -n +$i | head -15 | while read file; do
+    echo "Verwerking van bestand: $file"
+    mv "$file" part_"$i-$((i+14))"
+  done
+  generate_plot.py -wd part_"$i-$((i+14))"
 done
+
+#going back to main directory
+cd ..
 
 conda deactivate
 

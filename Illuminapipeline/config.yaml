@@ -1,0 +1,7 @@
+samples:
+  samples_1:
+    sample01_1: data/samples/070_001_240321_001_0355_099_01_4691_1.fq.gz
+    sample02_1: data/samples/070_001_240321_001_0356_099_01_4691_1.fq.gz   
+  samples_2:
+    sample01_2: data/samples/070_001_240321_001_0355_099_01_4691_2.fq.gz
+    sample02_2: data/samples/070_001_240321_001_0356_099_01_4691_2.fq.gz

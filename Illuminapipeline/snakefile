@@ -1,0 +1,182 @@
+configfile: "config.yaml"
+
+def get_fastqc_input_fastqs(wildcards):
+    return config["samples"][wildcards.sample]
+
+rule fastqc: 
+    input: 
+        get_fastqc_input_fastqs
+    output: 
+        directory(results/00_fastqc/)
+    params: 
+        extra: "-t 32"
+    log:
+        "logs/fastqc.log"
+    shell:
+        "fastqc {params.extra} {input} --extract -o {output} 2>> {log}"
+
+rule multiqc: 
+    input: 
+        "results/00_fastqc/"
+    output: 
+        directory(results/01_multiqc/)
+    log: 
+        "logs/multiqc.log"
+    conda:
+        "envs/multiqc.yml"
+    shell:
+        "multiqc {input} 2>> {log}"
+        "rm -rd {input} 2>> {log}"
+        "mv multiqc_report.html {output}"
+
+rule Kraken2:
+    input: 
+        get_fastqc_input_fastqs
+    output: 
+       "results/02_kraken2/{sample}_kraken2.report"
+    params:
+        extra: "--threads 16" 
+    log: 
+        "logs/Kraken2.log"
+    shell:
+        kraken2 --gzip-compressed {input} --db /var/db/kraken2/Standard --report {output} {params.extra} --quick --memory-mapping 2>> {log}
+
+rule Krona:
+    input: 
+       "results/02_kraken2/{sample}_kraken2.report"
+    output: 
+       "results/03_krona/{sample}_krona.html" 
+    params:
+        extra: "-t 5 -m 3"
+    log: 
+        "logs/Krona.log"
+    conda:
+        "envs/krona.yml"
+    shell:
+        "ktImportTaxonomy {params.extra} -o {output} {input} 2>> {log}"
+        "rm {input} 2>> {log}"
+
+rule fastp:
+    input: 
+        first:"$g"_1.fq.gz
+        second:"$g"_2.fq.gz
+    output: 
+        first: "results/04_fastp/{sample}_1.fq.gz"
+        second: "results/04_fastp/{sample}_2.fq.gz"
+        html: "results/04_fastp/{sample}_fastp.html"
+        json: "results/04_fastp/{sample}_fastp.json"
+    params:
+        extra: "-w 32"
+    log: 
+        "logs/fastp.log"
+    shell:
+        "fastp {params.extra} -i {input.first} -I {input.second} -o {output.first} -O {output.second} -h {output.html} -j {output.json} --detect_adapter_for_pe 2>> {log}
+
+rule shovill:
+    input: 
+        first: "results/04_fastp/{sample}_1.fq.gz"
+        second: "results/04_fastp/{sample}_2.fq.gz"
+    output: 
+        "results/05_shovill"
+    params:
+        extra: "--cpus 16 --ram 16 --minlen 500 --trim"
+    log: 
+        "logs/shovill.log"
+    conda:
+        "envs/shovill.yml"
+    shell:
+        shovill --R1 {input.first} --R2 {input.second} {params.extra} -outdir {output} 
+
+rule assemblies:
+    input: 
+        copie:"results/05_shovill/"
+        remove: "results/04_fastp/{sample}.fq.gz"
+    output: 
+        "results/assemblies/"$d".fna"
+    shell:
+        "for d in $(ls -d {input.copie}); do cp "$d"/contigs.fa {output}; done"
+        "rm {input.remove}"
+
+rule skANI:
+    input: 
+        "results/assemblies/{sample}.fna"
+    output: 
+        "results/06_skani/skani_results_file.txt"
+    params:
+        extra: "-t 24 -n 1"
+    log: 
+       "logs/skani.log" 
+    conda:
+        "envs/skani.yml"
+    shell:
+        skani search {input} -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o {output} {params.extra} 2>> {log}
+
+rule Quast:
+    input: 
+       "results/assemblies/{sample}.fna" 
+    output: 
+        directory("results/07_quast/")
+    conda:
+        "envs/quast.yml"
+    shell:
+        "for f in {input}; do quast.py "$f" -o {output}"$f";done" 
+
+rule quast_summarie:
+    input: 
+       "results/assemblies/{sample}.fna" 
+    output: 
+        "results/07_quast/quast_summary_table.txt"
+    shell:
+        "touch {output}"
+        "echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> {output}"
+        "counter=1
+        for file in $(find -type f -name "transposed_report.tsv"); do
+            # Show progress
+            echo "Processing file: $counter"
+            # Add the content of each file to the summary table (excluding the header)
+            tail -n +2 "$file" >> {output}
+            # Increment the counter
+            counter=$((counter+1))
+        done"
+
+rule excel_and_beeswarm: 
+    input:
+        excel: "skani_quast_to_xlsx.py"
+        beeswarm: "beeswarm_vis_assemblies.R"
+        directory: ""
+        quast:"results/07_quast/quast_summary_table.txt"
+    shell:
+        "{input.excel} {input.directory}"
+        "{input.beeswarm} {input.directory}{input.quast}"
+
+rule Busco:
+    input: 
+        "results/assemblies/{sample}.fna" 
+    output: 
+        "results/08_busco/{sample}"
+    params:
+        extra: "-m genome --auto-lineage-prok -c 32"  
+    conda:
+        "envs/busco.yml"
+    shell:
+        "for sample in $(ls {input} | awk 'BEGIN{FS=".fna"}{print $1}'); do busco -i "$sample".fna -o {output} {params.extra} ; done"
+rule Busco:
+    input: 
+        sample:"results/08_busco/{sample}" 
+        script: "generate_plot.py"
+    output: 
+        directory("results/busco_summaries")
+    conda:
+        "envs/busco.yml"
+    shell:
+        "cp {input.sample}/*/*/short_summary.specific.burkholderiales_odb10.*.txt {output}"
+        "cd {output}"
+        "for i in $(seq 1 15 $(ls -1 | wc -l)); do
+            echo "Verwerking van bestanden $i tot $((i+14))"
+            mkdir -p part_"$i-$((i+14))"
+            ls -1 | tail -n +$i | head -15 | while read file; do
+                echo "Verwerking van bestand: $file"
+                mv "$file" part_"$i-$((i+14))"
+            done
+            {input.script} -wd part_"$i-$((i+14))"
+        done"

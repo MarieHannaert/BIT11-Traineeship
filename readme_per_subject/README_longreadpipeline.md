@@ -199,7 +199,7 @@ This didn't give the correct output, It missed a loop in the command,so I tried 
 for sample in `ls GBBC50*/*.fasta | awk 'BEGIN{FS=".fasta"}{print $1}'`; do flye --asm-coverage 50 --genome-size 2.6g --nano-hq "$sample".fasta --out-dir flye_out --threads 32 --iterations 1 --scaffold ; done
 ````
 The genome size isn't correct, so I asked my supervisor the genome size, this apperently 5.4g 
- ````
+````
 for sample in `ls GBBC50*/*.fasta | awk 'BEGIN{FS="/OUTPUT.fasta"}{print $1}'`; do flye --asm-coverage 50 --genome-size 5.4g --nano-hq "$sample"/OUTPUT.fasta --out-dir flye_out_"$sample" --threads 32 --iterations 1 --scaffold ; done     
 ````
 This worked. 
@@ -207,5 +207,92 @@ This worked.
 ## Trycycler  
 start tmux session
 
+https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02483-z
+
+>While long-read sequencing allows for the complete assembly of bacterial genomes, long-read assemblies contain a variety of errors. Here, we present Trycycler, a tool which produces a consensus assembly from multiple input assemblies of the same genome. Benchmarking showed that Trycycler assemblies contained fewer errors than assemblies constructed with a single tool. Post-assembly polishing further reduced errors and Trycycler+polishing assemblies were the most accurate genomes in our study. As Trycycler requires manual intervention, its output is not deterministic. However, we demonstrated that multiple users converge on similar assemblies that are consistently more accurate than those produced by automated assembly tools.
+
+https://github.com/rrwick/Trycycler
+
+>Trycycler is a tool for generating consensus long-read assemblies for bacterial genomes. I.e. if you have multiple long-read assemblies for the same isolate, Trycycler can combine them into a single assembly that is better than any of your inputs.
+
+To perform this: 
+````
+mamba activate trycycler
+
+trycycler
+
+output:
+usage: trycycler [-h] [--version] {subsample,cluster,dotplot,reconcile,msa,partition,consensus} ...
+
+ _______                               _
+|__   __|                             | |
+   | | _ __  _   _   ___  _   _   ___ | |  ___  _ __
+   | || '__|| | | | / __|| | | | / __|| | / _ \| '__|
+   | || |   | |_| || (__ | |_| || (__ | ||  __/| |
+   |_||_|    \__, | \___| \__, | \___||_| \___||_|
+              __/ |        __/ |
+             |___/        |___/
+
+Trycycler: a consensus long-read assembly tool
+Commands:
+  {subsample,cluster,dotplot,reconcile,msa,partition,consensus}
+                                        subsample: subsample a long-read set
+                                        cluster:   cluster contigs by similarity
+                                        dotplot:   draw pairwise dotplots for a cluster
+                                        reconcile: reconcile contig sequences
+                                        msa:       multiple sequence alignment
+                                        partition: partition reads by cluster
+                                        consensus: derive a consensus sequence
+Help:
+  -h, --help                            Show this help message and exit
+  --version                             Show program's version number and exit
+````
+
 ## hybracter 
 start tmux session 
+
+https://github.com/gbouras13/hybracter
+
+>hybracter is an automated long-read first bacterial genome assembly tool implemented in Snakemake using Snaketool.
+hybracter is designed for assembling bacterial isolate genomes using a long read first assembly approach. It scales massively using the embarassingly parallel power of HPC and Snakemake profiles. It is designed for applications where you have isolates with Oxford Nanopore Technologies (ONT) long reads and optionally matched paired-end short reads for polishing.
+hybracter is desined to straddle the fine line between being as fully feature-rich as possible with as much information as you need to decide upon the best assembly, while also being a one-line automated program. In other words, as awesome as Unicycler, but updated for 2023. Perfect for lazy people like myself.
+hybracter is largely based off Ryan Wick's magnificent tutorial and associated paper. hybracter differs in that it adds some additional steps regarding targeted plasmid assembly with plassembler, contig reorientation with dnaapler and extra polishing and statistical summaries.
+Note: if you have Pacbio reads, as of 2023, you can run hybracter long with --no_medaka to turn off polishing, and --flyeModel pacbio-hifi. You can also probably just run Flye or Dragonflye (or of course Trycyler ) and reorient the contigs with dnaapler without polishing. See Ryan Wick's blogpost for more details.
+
+documentation can be found: https://hybracter.readthedocs.io/en/latest/
+
+````
+mamba activate hybracterENV
+
+
+hybracter version 0.6.0
+
+
+
+ _           _                    _            
+| |__  _   _| |__  _ __ __ _  ___| |_ ___ _ __ 
+| '_ \| | | | '_ \| '__/ _` |/ __| __/ _ \ '__|
+| | | | |_| | |_) | | | (_| | (__| ||  __/ |   
+|_| |_|\__, |_.__/|_|  \__,_|\___|\__\___|_|   
+       |___/
+
+
+Usage: hybracter [OPTIONS] COMMAND [ARGS]...
+
+  For more options, run: hybracter command --help
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  install        Downloads and installs the plassembler database
+  hybrid         Run hybracter with hybrid long and paired end short reads
+  hybrid-single  Run hybracter hybrid on 1 isolate
+  long           Run hybracter with only long reads
+  long-single    Run hybracter long on 1 isolate
+  test-hybrid    Test hybracter hybrid
+  test-long      Test hybracter long
+  config         Copy the system default config file
+  citation       Print the citation(s) for hybracter
+  version        Print the version for hybracter
+````

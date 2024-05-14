@@ -1454,7 +1454,7 @@ if [ "$#" -ne 4 ]; then
     done
 fi
 ````
-Ity didn't work, I went directly to the next step of checking the input directory. 
+It didn't work, I went directly to the next step of checking the input directory. 
 I deleted this part completly and tried again: 
 ````
 while getopts ":vhg:" option; do
@@ -1488,3 +1488,138 @@ https://www.shellcheck.net/
 I changed the recommanded thing there and then replaced my script with the improved script from there. 
 
 I will now run the script over night to check all the changes like busco loop. 
+
+### result after overnight 
+the busco loop didn't work, so that needs to be changed again. 
+The rest looks like it worked, the excel and the visualisation were done and looked the same as yesterday after the big test. 
+I will now try to fix the busco loop. and fix the bash options because yesterday they also didn't work yet. 
+So overview of today for the script: 
+- fixing busco loop
+- fixing bash options
+- adding licence 
+
+### busco loop part 2 
+my supervisor has given me a part of code that I can use to make the busco part. 
+````
+Om een loop in Bash te maken die per 15 bestanden loopt, kunt u de volgende script gebruiken:
+ 
+```bash
+for i in $(seq 1 15 $(ls -1 | wc -l)); do
+  echo "Verwerking van bestanden $i tot $((i+14))"
+  ls -1 | tail -n +$i | head -15 | while read file; do
+    # Voer hier commando's uit op "$file"
+    echo "Verwerking van bestand: $file"
+  done
+done
+```
+ 
+Dit script maakt gebruik van een `for`-loop met `seq` om in stappen van 15 te itereren. Voor elke iteratie worden de bestanden opgehaald met `ls -1`, en met `tail` en `head` wordt een subset van 15 bestanden geselecteerd. Vervolgens wordt er een tweede loop gebruikt om commando's uit te voeren op elk bestand in de subset.
+ 
+Vervang `# Voer hier commando's uit op "$file"` met de daadwerkelijke commando's die u op elk bestand wilt toepassen. **
+````
+With this extra information I made the following part of code. 
+````
+for i in $(seq 1 15 $(ls -1 | wc -l)); do
+  echo "Verwerking van bestanden $i tot $((i+14))"
+  mkdir part_"$i-$((i+14))"
+  ls -1 | tail -n +$i | head -15 | while read file; do
+    echo "Verwerking van bestand: $file"
+    mv "$file" part_"$i-$((i+14))"
+  done
+  generate_plot.py -wd part_"$i-$((i+14))"
+done
+````
+It kind of worked, 1 sample was moved in to a sub folder and there indeed the visualisation was performed, but the second sample needed also to be there but this wasn't the case. 
+I removed every test I did and test again, maybe it was interfering with each other. 
+
+It now looks like it worked for the two samples I got the desired result, I will test this with the complete dataset over night. 
+
+
+### Bash options part 2
+to make this work I removed the last ":" and so I got the following line: 
+````
+while getopts ":gvh" option; do
+````
+When I now check the output I get the following results:
+````
+complete_illuminapipeline.sh -h
+Add description of the script functions here.
+
+Syntax: scriptTemplate [-g|h|v]
+options:
+g     Print the license notification.
+h     Print this Help.
+v     Print version of script and exit.
+
+complete_illuminapipeline.sh -g
+Copyright 2024 Marie Hannaert
+
+complete_illuminapipeline.sh -v
+complete_illuminapipeline script version 1.0
+````
+This is the output I needed. 
+I wanted to add an extra option "-u" for the usage of the script. 
+But I added it like this: 
+````
+function Help()
+{
+   # Display Help
+   echo "Add description of the script functions here."
+   echo
+   echo "Syntax: scriptTemplate [-g|h|v|u]"
+   echo "options:"
+   echo "g     Print the license notification."
+   echo "h     Print this Help."
+   echo "v     Print version of script and exit."
+   echo "u     Print usage of script and exit."
+}
+
+while getopts ":gvhu" option; do
+    case $option in
+        h) # display Help
+            Help
+            exit;;
+        g) # Print the license notification
+            echo "Copyright 2024 Marie Hannaert"
+            exit;;
+        v) # Print version of script and exit
+            echo "complete_illuminapipeline script version 1.0"
+            exit;;
+        u) # display usage
+            usage;;
+        \?) # Invalid option
+            usage;;
+    esac
+done
+````
+But now the options don't work for "-u" option, the other options still work. 
+Ansich I got the right output, but I don't know if it's in the right way, I will currently leave it like that. 
+
+### Adding licence 
+I asked my supervisor this, and he said That I just needed to add that whole blok of MIT linces: https://opensource.org/license/mit
+in the script. so I added it in the bash options: 
+````
+while getopts ":gvuh" option; do
+    case $option in
+        h) # display Help
+            Help
+            exit;;
+        g) # Print the license notification
+            echo "Copyright 2024 Marie Hannaert (ILVO) 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."
+            exit;;
+        v) # Print version of script and exit
+            echo "complete_illuminapipeline script version 1.0"
+            exit;;
+        u) # display usage
+            usage;;
+        \?) # Invalid option
+            usage;;
+    esac
+done
+````

@@ -314,6 +314,10 @@ beeswarm_vis_assemblies.R "$DIR/$OUT/06_quast/quast_summary_table.txt" 2>> "$DAT
 
 echo "Finished Quast and starting Busco at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Illuminapipeline.log
 
+#part for moving the results in the right directory
+mv skANI_Quast_output.xlsx 05_skani/
+mv beeswarm_vis_assemblies.png 06_quast/
+
 #Busco part
 conda activate busco
 
@@ -343,6 +347,9 @@ done
 
 #going back to main directory
 cd ..
+
+#removing the busco_downloads directory 
+rm -dr busco_downloads
 
 conda deactivate
 

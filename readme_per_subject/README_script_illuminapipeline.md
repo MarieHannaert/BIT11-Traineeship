@@ -1623,3 +1623,26 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
     esac
 done
 ````
+## test overnight 
+I didn't get the result I was expecting, I only got after the fastp step 8 samples. So it looks like there went some thing wrong 
+
+I talked about it and we think the proces was killed on that point in the workflow by the admin, but only that specific command en that's the reason why it still runned the rest of the script and I 8 samples got. 
+
+## feedback
+We also took a look further at the script and he approved it, only things I still could change were: 
+- removing busco downloads folder after performing 
+- moving the excel and the beeswarm vis naar de jusite folder 
+
+I added the following part on line 347:
+````
+#removing the busco_downloads directory 
+rm -dr busco_downloads
+````
+
+and I added this on lines 317:
+````
+#part for moving the results in the right directory
+mv skANI_Quast_output.xlsx 05_skani/
+mv beeswarm_vis_assemblies.png 06_quast/
+````
+So now the script is ready

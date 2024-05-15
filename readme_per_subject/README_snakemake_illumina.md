@@ -421,3 +421,48 @@ SyntaxError:
 Not all output, log and benchmark files of rule fastp contain the same wildcards. This is crucial though, in order to avoid that two or more jobs write to the same file.
 ````
 I got this error but I can get it fixed....
+I asked my supervisor for the bug he's going to take a look at everything. 
+So I'm going to wait on this feedback before working further on the snakemake. 
+
+## working further 
+On advise of my supervisor I installed the snakemake language extension and the snakefmt extension in VSC, this will prob help with my syntax. 
+
+maybe I need to add a shebang line of snakemake 
+
+I talked with my supervisor about it and he gave me some new information about the config file and the samples:
+````
+IDS, = glob_wildcards("{id}_R1.fastq.gz")
+ 
+rule all:
+  input:
+    expand(["taxonomy/{id}.krona.html"], id=IDS),
+    "iqtree.log",
+    "results/",
+    "amr_output.tab",
+    "heatmap_output.html"
+# Cleaning up fastq files    
+rule fastp:
+	input:
+		["{id}_R1.fastq.gz", "{id}_R2.fastq.gz"]
+	output:
+		["fastp/{id}_R1.fastq.gz.fastp", "fastp/{id}_R2.fastq.gz.fastp"]
+	message:
+		"Filtering fastQ files by trimming low quality reads using fastp"
+	shell:
+		"fastp -i {input[0]} -I {input[1]} -o {output[0]} -O {output[1]}"
+
+
+The pattern {id}_R1.fastq.gz specifies that the function should look for files with the .fastq.gz extension and a prefix that matches the pattern {id}_R1. The {id} part of the pattern is a wildcard that can match any string of characters.
+The glob_wildcards function returns a list of all the matching file prefixes, which are stored in the variable IDS.
+So, if you have the following files in your directory:
+sample1_R1.fastq.gz
+sample2_R1.fastq.gz
+sample3_R1.fastq.gz
+The glob_wildcards function will return the following list:
+IDS = ['sample1', 'sample2', 'sample3']
+This list can then be used in a Snakemake rule to process each file individually. For example, you might use the IDS list to create a rule that maps each read file to a reference genome, like this:
+````
+Also I'm reading the documentation again 
+while doing this all and having all this information, I will update my script, when I'm done you can find the changes I made in my github under the commit with the message of "improving snakefile"
+
+It wasn't succesfull, It looks like I have more erros then when I started with this

@@ -466,3 +466,121 @@ Also I'm reading the documentation again
 while doing this all and having all this information, I will update my script, when I'm done you can find the changes I made in my github under the commit with the message of "improving snakefile"
 
 It wasn't succesfull, It looks like I have more erros then when I started with this
+
+## fixing the snakemake 
+````
+InputFunctionException in rule fastqc in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 23:
+Error:
+  AttributeError: 'Wildcards' object has no attribute 'sample'
+Wildcards:
+
+Traceback:
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile", line 20, in get_sample_input_fastqs (rule fastqc, line 32, /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile)
+````
+This is the error where I start with today, I think I will use the more python way of defining my samples. 
+
+I did it now on the following way: 
+````
+# Define list of conditions
+IDS, = glob_wildcards("{id}_1.fq.gz")
+CONDITIONS = ["1", "2"]
+
+# Define directories
+REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline"
+SAMDIR = REFDIR + "/data/samples/"
+RESDIR = "/results"
+DIRS = ["00_fastqc/","01_multiqc/","02_kraken2/","03_krona/"]
+
+rule all:
+    input: 
+        expand("results/{dirs}", dirs= DIRS)
+
+# Rule to perform FastQC analysis
+rule fastqc:
+    input:
+        expand(SAMDIR+"{id}_{con}.fq.gz", id= IDS, con=CONDITIONS)
+    output:
+        directory("results/00_fastqc/")
+    log:
+        "logs/fastqc/"
+    params:
+        extra="-t 32",
+
+    shell:
+        """
+        fastqc {params.extra} {input} --extract -o {output} 2>> {log}
+        """
+````
+And this gave me a new error, what's give me hope
+````
+Building DAG of jobs...
+MissingInputException in rule fastqc in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 16:
+Missing input files for rule fastqc:
+    output: results/00_fastqc
+    affected files:
+        /home/genomics/mhannaert/snakemake/Illuminapipeline/data/samples/data/sampels/070_001_240321_001_0356_099_01_4691_2.fq.gz
+        /home/genomics/mhannaert/snakemake/Illuminapipeline/data/samples/data/sampels/070_001_240321_001_0356_099_01_4691_1.fq.gz
+        /home/genomics/mhannaert/snakemake/Illuminapipeline/data/samples/data/sampels/070_001_240321_001_0355_099_01_4691_2.fq.gz
+        /home/genomics/mhannaert/snakemake/Illuminapipeline/data/samples/data/sampels/070_001_240321_001_0355_099_01_4691_1.fq.gz
+````
+I can see in the error that a part of the path is double "/data/samples" so there will be an error some where with the path. 
+I will in the input part change the sam dir to refdir because that has not that specific part in it. It solved it, I got the following output:
+````
+Building DAG of jobs...
+Job stats:
+job        count
+-------  -------
+all            1
+fastqc         1
+multiqc        1
+total          3
+
+Execute 1 jobs...
+
+[Thu May 16 14:38:59 2024]
+localrule fastqc:
+    input: /home/genomics/mhannaert/snakemake/Illuminapipeline/data/sampels/070_001_240321_001_0355_099_01_4691_1.fq.gz, /home/genomics/mhannaert/snakemake/Illuminapipeline/data/sampels/070_001_240321_001_0355_099_01_4691_2.fq.gz, /home/genomics/mhannaert/snakemake/Illuminapipeline/data/sampels/070_001_240321_001_0356_099_01_4691_1.fq.gz, /home/genomics/mhannaert/snakemake/Illuminapipeline/data/sampels/070_001_240321_001_0356_099_01_4691_2.fq.gz
+    output: results/00_fastqc
+    log: logs/fastqc
+    jobid: 1
+    reason: Missing output files: results/00_fastqc
+    resources: tmpdir=<TBD>
+
+Execute 1 jobs...
+
+[Thu May 16 14:38:59 2024]
+localrule multiqc:
+    input: results/00_fastqc
+    output: results/01_multiqc
+    log: logs/multiqc.log
+    jobid: 2
+    reason: Missing output files: results/01_multiqc; Input files updated by another job: results/00_fastqc
+    resources: tmpdir=<TBD>
+
+Execute 1 jobs...
+
+[Thu May 16 14:38:59 2024]
+localrule all:
+    input: results/00_fastqc, results/01_multiqc
+    jobid: 0
+    reason: Input files updated by another job: results/01_multiqc, results/00_fastqc
+    resources: tmpdir=<TBD>
+
+Job stats:
+job        count
+-------  -------
+all            1
+fastqc         1
+multiqc        1
+total          3
+
+Reasons:
+    (check individual jobs above for details)
+    input files updated by another job:
+        all, multiqc
+    missing output files:
+        fastqc, multiqc
+
+This was a dry-run (flag -n). The order of jobs does not reflect the order of execution.
+````
+SO now I will add part the complete pipeline 

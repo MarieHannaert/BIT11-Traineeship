@@ -1,36 +1,46 @@
 # Define list of conditions
-IDS, = glob_wildcards("{id}_1.fq.gz")
+IDS, = glob_wildcards("data/samples/{id}_1.fq.gz")
 CONDITIONS = ["1", "2"]
 
 # Define directories
 REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
-SAMDIR = REFDIR + "/data/samples/"
-RESDIR = "/results"
-DIRS = ["00_fastqc/","01_multiqc/"]
-#,"02_kraken2/","03_krona/"
+
 rule all:
     input: 
-        expand("results/{dirs}", dirs= DIRS)
-
-# Rule to perform FastQC analysis
-rule fastqc:
-    input:
-        expand(REFDIR+"{id}_{con}.fq.gz", id= IDS, con=CONDITIONS)
+        "results/00_fastqc/", "results/01_multiqc/",
+        expand("results/00_fastqc/{id}_{con}_fastqc.zip", id=IDS, con=CONDITIONS), 
+        expand("results/00_fastqc/{id}_{con}_fastqc.html",id=IDS, con=CONDITIONS)
+rule Making_results_dir:
     output:
-        directory("results/00_fastqc/")
-    log:
-        "logs/fastqc/"
-    params:
-        extra="-t 32",
-
+        directory("results/")
     shell:
         """
-        fastqc {params.extra} {input} --extract -o {output} 2>> {log}
+        mkdir -p {output}
+        cd {output}
         """
-
+rule Making_output_dirs:
+    output:
+        directory("00_fastqc/"),
+        directory("01_multiqc")
+    shell:
+        """
+        mkdir -p {output[0]}
+        mkdir -p {output[1]}
+        """
+# Rule to perform FastQC analysis
+rule fastqc:
+    output:
+        directory("results/00_fastqc/"),
+        expand("results/00_fastqc/{id}_{con}_fastqc.zip", id=IDS, con=CONDITIONS),
+        expand("results/00_fastqc/{id}_{con}_fastqc.html",id=IDS, con=CONDITIONS)
+    log:
+        "logs/fastqc.log"
+    shell:
+        """
+        mkdir -p results/00_fastqc/
+        fastqc -t 32 data/samples/*.gz --extract -o {output[0]} 2>> {log}
+        """   
 rule multiqc:
-    input:
-        "results/00_fastqc/"
     output:
         directory("results/01_multiqc/")
     log:
@@ -39,8 +49,6 @@ rule multiqc:
         "envs/multiqc.yml"
     shell:
         """
-        multiqc {input} 2>> {log}
-        rm -rf {input} 2>> {log}
-        mv {input}/multiqc_report.html {output}
+        mkdir -p results/01_multiqc/
+        multiqc results/00_fastqc/ -o results/01_multiqc/ 2>> {log}
         """
-

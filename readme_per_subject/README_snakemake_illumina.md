@@ -583,4 +583,404 @@ Reasons:
 
 This was a dry-run (flag -n). The order of jobs does not reflect the order of execution.
 ````
-SO now I will add part the complete pipeline 
+SO still some small issues, I will fix themm now. It looks like I need to realy specify each output FILE, the most errors come with the use of directories. 
+
+I execute the snakemake I need to use the following command:
+ ````
+ snakemake --use-conda -j 4
+ ````
+ When I do this the outut I now got is: 
+ ````
+ Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Creating conda environment envs/multiqc.yml...
+Downloading and installing remote packages.
+Environment for /home/genomics/mhannaert/snakemake/Illuminapipeline/envs/multiqc.yml created (location: .snakemake/conda/f603d5f182bf6b4214b829cdb04e8efc_)
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job        count
+-------  -------
+all            1
+multiqc        1
+total          2
+
+Select jobs to execute...
+Execute 1 jobs...
+
+[Thu May 16 15:44:06 2024]
+localrule multiqc:
+    output: results/01_multiqc, results/01_multiqc/multiqc_report.html
+    log: logs/multiqc.log
+    jobid: 1
+    reason: Missing output files: results/01_multiqc/multiqc_report.html
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/f603d5f182bf6b4214b829cdb04e8efc_
+                                                                                                                                                                                        
+ Usage: multiqc [OPTIONS] [ANALYSIS DIRECTORY]                                                                                                                                          
+                                                                                                                                                                                        
+ This is MultiQC v1.21                                                                                                                                                                  
+ For more help, run 'multiqc --help' or visit http://multiqc.info                                                                                                                       
+╭─ Error ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Missing argument '[ANALYSIS DIRECTORY]'.                                                                                                                                             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+                                                                                                                                                                                        
+[Thu May 16 15:44:07 2024]
+Error in rule multiqc:
+    jobid: 1
+    output: results/01_multiqc, results/01_multiqc/multiqc_report.html
+    log: logs/multiqc.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/f603d5f182bf6b4214b829cdb04e8efc_
+    shell:
+        
+        mkdir -p results/01_multiqc
+        multiqc  -o results/01_multiqc/ 2>> logs/multiqc.log
+        
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job multiqc since they might be corrupted:
+results/01_multiqc
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-16T154029.848592.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+ ````
+ The important part of this output is the following: 
+ ````
+  shell:
+        
+        mkdir -p results/01_multiqc
+        multiqc  -o results/01_multiqc/ 2>> logs/multiqc.log
+ ````
+ The input is not correct, so I changed the multiqc part: 
+ ````
+ rule multiqc:
+    output:
+        directory("results/01_multiqc/"),
+        "results/01_multiqc/multiqc_report.html"
+    log:
+        "logs/multiqc.log"
+    conda:
+        "envs/multiqc.yml"
+    shell:
+        """
+        mkdir -p results/01_multiqc
+        multiqc results/00_fastqc/ -o results/01_multiqc/ 2>> {log}
+        
+        """
+
+This gave the following important error: 
+│ Invalid value for '[ANALYSIS DIRECTORY]': Path 'results/00_fastqc/' does not exist. 
+ ````
+ SO maybe I need to make the results folder in the pipeline
+ So in the fastqc part I added the line to make the folder. 
+
+ So I got a new error: 
+ ````
+ Building DAG of jobs...
+ChildIOException:
+File/directory is a child to another output:
+('/home/genomics/mhannaert/snakemake/Illuminapipeline/results', fastqc)
+('/home/genomics/mhannaert/snakemake/Illuminapipeline/results/01_multiqc', multiqc)
+ ````
+ I got now all several times the same error: 
+ ````
+ Invalid value for '[ANALYSIS DIRECTORY]': Path 'results/00_fastqc/' does not exist.     
+ ````
+I tried to make as a first rule making the directory, it always by the multiqc part it goes wrong. 
+So I will change that  part again
+
+There is a problem:
+````
+│ Invalid value for '[ANALYSIS DIRECTORY]': Path 'results/00_fastqc/' does not exist.   
+````
+To fix this error, I removed the multiqc temeary 
+So now I'm only testing with the following: 
+````
+# Define list of conditions
+IDS, = glob_wildcards("data/samples/{id}_1.fq.gz")
+CONDITIONS = ["1", "2"]
+
+# Define directories
+REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
+SAMDIR = REFDIR + "/data/samples/"
+RESDIR = "/results"
+DIRS = ["00_fastqc/"]
+#,"01_multiqc/","02_kraken2/","03_krona/"
+rule all:
+    input: 
+        expand("results/00_fastqc/{id}_{con}_fastqc.zip", id=IDS, con=CONDITIONS)
+        #, expand("results/00_fastqc/{id}_{con}_fastqc.html",id=IDS, con=CONDITIONS),
+        #"results/01_multiqc/multiqc_report.html"
+
+rule Making_results_dir:
+    output:
+        directory("results/")
+    shell:
+        """
+        mkdir -p {output}
+        """
+
+# Rule to perform FastQC analysis
+rule fastqc:
+    input:
+        expand(REFDIR+"data/samples/{id}_{con}.fq.gz", id= IDS, con=CONDITIONS)
+    output:
+        directory("results/00_fastqc/"),
+        expand("results/00_fastqc/{id}_{con}_fastqc.zip", id=IDS, con=CONDITIONS),
+        expand("results/00_fastqc/{id}_{con}_fastqc.html",id=IDS, con=CONDITIONS)
+    log:
+        "logs/fastqc.log"
+    params:
+        extra="-t 32",
+
+    shell:
+        """
+        mkdir -p results/00_fastqc
+        fastqc {params.extra} {input} --extract -o {output[0]} 2>> {log}
+        """
+````
+I removed also the fastqc part and checked again, the rule for making the results folder is fine, so now I will add a part for making all the folders at once in the results folder. 
+
+To check I will only start with fastqc and multiqc. 
+so this is whats in my snakefile at the moment: 
+````
+# Define list of conditions
+IDS, = glob_wildcards("data/samples/{id}_1.fq.gz")
+CONDITIONS = ["1", "2"]
+
+# Define directories
+REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
+
+rule all:
+    input: 
+        "results/",
+        "results/00_fastqc/",
+        "results/01_multiqc"
+        #expand("results/00_fastqc/{id}_{con}_fastqc.zip", id=IDS, con=CONDITIONS), 
+        #expand("results/00_fastqc/{id}_{con}_fastqc.html",id=IDS, con=CONDITIONS),
+        #"results/01_multiqc/multiqc_report.html"
+
+rule Making_results_dir:
+    output:
+        directory("results/")
+    shell:
+        """
+        mkdir -p {output}
+        """
+rule Making_output_dirs:
+    input:
+        "results/"
+    output:
+        directory("results/00_fastqc/"),
+        directory("results/01_multiqc")
+    shell:
+        """
+        mkdir -p {output[0]}
+        mkdir -p {output[1]}
+        """
+
+````
+I changed my Snakefile back. 
+to a previous state: 
+````
+# Define list of conditions
+IDS, = glob_wildcards("data/samples/{id}_1.fq.gz")
+CONDITIONS = ["1", "2"]
+
+# Define directories
+REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
+
+rule all:
+    input: 
+        "results/00_fastqc/", "results/01_multiqc/",
+        expand("results/00_fastqc/{id}_{con}_fastqc.zip", id=IDS, con=CONDITIONS), 
+        expand("results/00_fastqc/{id}_{con}_fastqc.html",id=IDS, con=CONDITIONS),
+        "results/01_multiqc/multiqc_report.html"
+
+rule Making_results_dir:
+    output:
+        directory("results/")
+    shell:
+        """
+        mkdir -p {output}
+        cd {output}
+        """
+rule Making_output_dirs:
+    output:
+        directory("00_fastqc/"),
+        directory("01_multiqc")
+    shell:
+        """
+        mkdir -p {output[0]}
+        mkdir -p {output[1]}
+        """
+# Rule to perform FastQC analysis
+rule fastqc:
+    output:
+        directory("results/00_fastqc/"),
+        expand("results/00_fastqc/{id}_{con}_fastqc.zip", id=IDS, con=CONDITIONS),
+        expand("results/00_fastqc/{id}_{con}_fastqc.html",id=IDS, con=CONDITIONS)
+    log:
+        "logs/fastqc.log"
+    params:
+        extra="-t 32"
+
+    shell:
+        """
+        mkdir -p results/00_fastqc/
+        fastqc {params.extra} data/samples/ --extract -o {output[0]} 2>> {log}
+        """   
+rule multiqc:
+    output:
+        directory("results/01_multiqc/"),
+        "results/01_multiqc/multiqc_report.html"
+    log:
+        "logs/multiqc.log"
+    conda:
+        "envs/multiqc.yml"
+    shell:
+        """
+        mkdir -p results/01_multiqc/
+        multiqc results/00_fastqc/ -o results/01_multiqc/ 2>> {log}
+        """
+````
+With this code I got the following error: 
+````
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job        count
+-------  -------
+all            1
+multiqc        1
+total          2
+
+Select jobs to execute...
+Execute 1 jobs...
+
+[Thu May 16 17:13:23 2024]
+localrule multiqc:
+    output: results/01_multiqc, results/01_multiqc/multiqc_report.html
+    log: logs/multiqc.log
+    jobid: 2
+    reason: Missing output files: results/01_multiqc/multiqc_report.html, results/01_multiqc
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/f603d5f182bf6b4214b829cdb04e8efc_
+Waiting at most 5 seconds for missing files.
+MissingOutputException in rule multiqc in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 48:
+Job 2  completed successfully, but some output files are missing. Missing files after 5 seconds. This might be due to filesystem latency. If that is the case, consider to increase the wait time with --latency-wait:
+results/01_multiqc/multiqc_report.html
+Removing output files of failed job multiqc since they might be corrupted:
+results/01_multiqc
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-16T171321.502182.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+````
+I removed "results/01_multiqc/multiqc_report.html" out of the rule all. And now I don't get that error anymore but still don't get any output, the folders are made, but the output is not made, This is the output I get in the terminal: 
+````
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job        count
+-------  -------
+all            1
+multiqc        1
+total          2
+
+Select jobs to execute...
+Execute 1 jobs...
+
+[Thu May 16 17:20:08 2024]
+localrule multiqc:
+    output: results/01_multiqc
+    log: logs/multiqc.log
+    jobid: 2
+    reason: Missing output files: results/01_multiqc
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/f603d5f182bf6b4214b829cdb04e8efc_
+[Thu May 16 17:20:09 2024]
+Finished job 2.
+1 of 2 steps (50%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Thu May 16 17:20:09 2024]
+localrule all:
+    input: results/00_fastqc, results/01_multiqc
+    jobid: 0
+    reason: Input files updated by another job: results/01_multiqc
+    resources: tmpdir=/tmp
+
+[Thu May 16 17:20:09 2024]
+Finished job 0.
+2 of 2 steps (100%) done
+Complete log: .snakemake/log/2024-05-16T172006.817454.snakemake.log
+````
+I removed the output and input from the fastqc and the multiqc 
+and tried again. 
+This was really not a succes. 
+Because of the folders that exist it didn't do anything. 
+I changed the following line: fastqc -t 32 data/samples/*.gz --extract -o {output[0]} 2>> {log}
+
+but still don't get any output inmy directories, in the terminal I got the following output: 
+````
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job       count
+------  -------
+all           1
+fastqc        1
+total         2
+
+Select jobs to execute...
+Execute 1 jobs...
+
+[Thu May 16 17:35:29 2024]
+localrule fastqc:
+    output: results/00_fastqc
+    log: logs/fastqc.log
+    jobid: 1
+    reason: Code has changed since last execution; Params have changed since last execution
+    resources: tmpdir=/tmp
+
+[Thu May 16 17:35:29 2024]
+Finished job 1.
+1 of 2 steps (50%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Thu May 16 17:35:29 2024]
+localrule all:
+    input: results/00_fastqc, results/01_multiqc
+    jobid: 0
+    reason: Input files updated by another job: results/00_fastqc
+    resources: tmpdir=/tmp
+
+[Thu May 16 17:35:29 2024]
+Finished job 0.
+2 of 2 steps (100%) done
+Complete log: .snakemake/log/2024-05-16T173527.062609.snakemake.log
+````

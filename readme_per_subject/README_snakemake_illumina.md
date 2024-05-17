@@ -984,3 +984,470 @@ Finished job 0.
 2 of 2 steps (100%) done
 Complete log: .snakemake/log/2024-05-16T173527.062609.snakemake.log
 ````
+## Checking again information about synthax and looking for a solution 
+I found this article https://academic.oup.com/bioinformatics/article/28/19/2520/290322
+I saw this part of code: 
+````
+SAMPLES =  "  100 101 102 103  "  .split()
+
+REF =  "  hg19.fa  "
+
+rule  all:
+
+ input: "{sample}.coverage.pdf".format(sample = sample)
+
+    for sample in SAMPLES
+
+rule   fastq_to_sai:
+
+  input: ref = REF, reads = "{sample}.{group}.fastq"
+
+  output: temp("{sample}.{group}.sai")
+
+  shell: "bwa aln {input.ref} {input.reads} > {output}"
+
+````
+maybe this is a solution to my problem, the for loop on top for each sample in the directory
+I misread the code, the for loop is under the rule all, not above 
+
+An other thing I tought I could check out is the difference in use of "shell" or "run"
+-> "shell:" is for not python code, "run:" is for python code 
+
+An other thing that I needed to know is to let rule wait, to another rule to finish because it's needed as input 
+-> Snakemake determines the execution order of the rules according to the inputs and outputs of the rules. If you define a directory, and not files, as output of a rule, it can indeed be confusing for snakemake. The documentation (https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#directories-as-outputs) states:
+
+Always consider if you can’t formulate your workflow using normal files before resorting to using directory()
+
+A way to be sure your first rules runs to the end before executing the second rule is to use the touch() function (https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#flag-files)
+
+this is interesting information, because I use the directories it doesn't wait, so I will change as mutch as possible to files. 
+
+I changed my code to: 
+````
+import os 
+
+# Define list of conditions
+#IDS, = glob_wildcards("data/samples/{id}_1.fq.gz")
+CONDITIONS = ["1", "2"]
+
+# Define directories
+REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
+sample_dir = REFDIR+"data/samples/"
+os.chdir(REFDIR)
+
+print(os.getcwd())
+
+for files in os.listdir(sample_dir):
+        sample = files.split("_")[0]
+    
+rule all:
+    input: 
+        "results/00_fastqc/", "results/01_multiqc/",
+        expand("results/00_fastqc/{sample}_{con}_fastqc.zip", sample=sample, con=CONDITIONS), 
+        expand("results/00_fastqc/{sample}_{con}_fastqc.html",sample=sample, con=CONDITIONS),
+        "results/01_multiqc/multiqc_report.html"
+
+rule Making_results_dir:
+    output:
+        directory("results/"),
+        "results/done.txt"
+    shell:
+        """
+        mkdir -p {output}
+        touch done.txt > {output}
+        """
+
+# Rule to perform FastQC analysis
+rule fastqc:
+    input:
+        expand('data/samples/{sample}_{con}.fq.gz', sample=sample, con=CONDITIONS),
+        "results/done.txt"
+    output:
+        directory("results/00_fastqc/"),
+        expand("results/00_fastqc/{sample}_{con}_fastqc.zip", sample=sample, con=CONDITIONS), 
+        expand("results/00_fastqc/{sample}_{con}_fastqc.html",sample=sample, con=CONDITIONS)
+    log:
+        "logs/fastqc.log"
+    shell:
+        """
+        mkdir -p results/00_fastqc/
+        fastqc -t 32 {input[0]} --extract -o {output[0]} 2>> {log}
+        """   
+rule multiqc:
+    input:
+        expand("results/00_fastqc/{sample}_{con}_fastqc.zip", sample=sample, con=CONDITIONS), 
+        expand("results/00_fastqc/{sample}_{con}_fastqc.html",sample=sample, con=CONDITIONS),
+        "results/00_fastqc/"
+    output:
+        directory("results/01_multiqc/"),
+        "results/01_multiqc/multiqc_report.html"
+    log:
+        "logs/multiqc.log"
+    conda:
+        "envs/multiqc.yml"
+    shell:
+        """
+        mkdir -p results/01_multiqc/
+        multiqc {input[2]} -o {output[0]} 2>> {log}
+        """
+````
+But I got the following error: 
+````
+/home/genomics/mhannaert/snakemake/Illuminapipeline
+Traceback (most recent call last):
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/cli.py", line 1886, in args_to_api
+    dag_api = workflow_api.dag(
+              ^^^^^^^^^^^^^^^^^
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/api.py", line 326, in dag
+    return DAGApi(
+           ^^^^^^^
+  File "<string>", line 6, in __init__
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/api.py", line 436, in __post_init__
+    self.workflow_api._workflow.dag_settings = self.dag_settings
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/api.py", line 383, in _workflow
+    workflow.include(
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/workflow.py", line 1374, in include
+    exec(compile(code, snakefile.get_path_or_uri(), "exec"), self.globals)
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile", line 14, in <module>
+    for files in os.listdir(sample_dir):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/genomics/mhannaert/snakemake/Illuminapipeline/data/samples/'
+````
+This is a strange error because I can see that it exist
+
+-> I made some typos, that's why it wasn't working
+after fixing these I got the following output: 
+````
+/home/genomics/mhannaert/snakemake/Illuminapipeline
+Building DAG of jobs...
+MissingInputException in rule fastqc in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 35:
+Missing input files for rule fastqc:
+    output: results/00_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_2.fq.gz_1_fastqc.zip, results/00_fastqc/070_001_240321_001_0356_099_01_4691_2.fq.gz_2_fastqc.zip, results/00_fastqc/070_001_240321_001_0356_099_01_4691_2.fq.gz_1_fastqc.html, results/00_fastqc/070_001_240321_001_0356_099_01_4691_2.fq.gz_2_fastqc.html
+    affected files:
+        data/sampels/070_001_240321_001_0356_099_01_4691_2.fq.gz_2.fq.gz
+        data/sampels/070_001_240321_001_0356_099_01_4691_2.fq.gz_1.fq.gz
+````
+To extract the sample names I made the fopllowing part of code: 
+````
+print(os.getcwd())
+sample_names = []
+sample_list = os.listdir(sample_dir)
+for i in range(len(sample_list)):
+    sample = sample_list[i]
+    if sample.endswith("_1.fq.gz"):
+        samples = sample.split("_1.fq")[0]
+        sample_names.append(samples)
+        print(sample_names)
+````
+I think this will be easier to work with in the snakemake, oke this part works:
+````
+/home/genomics/mhannaert/snakemake/Illuminapipeline
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+````
+So now it's making thnext parts work, because I also got the following error:
+````
+MissingInputException in rule all in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 21:
+Missing input files for rule all:
+    affected files:
+        results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc.zip
+        results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc.zip
+        results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc.zip
+        results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc.zip
+        results/01_multiqc/multiqc_report.html
+        results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc.html
+        results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc.html
+        results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc.html
+        results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc.html
+````
+I think the names of the files are already correct so it's only making the input correct and checking that the steps will follow eachother nicely
+
+Oke notthing really worked, so I went back to the documentation, because I think the problem is the rule all in the snakemake. When I see in the documentation that they are making a snakemake wokrflow they will first define all theire rules and then the "rule all". so I will also now try this way of working. 
+
+````
+import os
+# Define list of conditions
+#IDS, = glob_wildcards("data/samples/{id}_1.fq.gz")
+CONDITIONS = ["1", "2"]
+
+# Define directories
+REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
+sample_dir = REFDIR+"data/sampels/"
+os.chdir(REFDIR)
+
+print(os.getcwd())
+sample_names = []
+sample_list = os.listdir(sample_dir)
+for i in range(len(sample_list)):
+    sample = sample_list[i]
+    if sample.endswith("_1.fq.gz"):
+        samples = sample.split("_1.fq")[0]
+        sample_names.append(samples)
+        print(sample_names)
+
+
+rule Making_results_dir:
+    output:
+        directory("results/"),
+        "results/done.txt"
+    shell:
+        """
+        mkdir -p {output[0]}
+        echo done > {output[1]}
+        """
+
+rule fastqc: 
+    input:
+        sample_dir+sample_names+"_"+CONDITIONS+".fq.gz"
+    output:
+        directory("results/00_fastqc/")
+    params:
+        extra="-t 32"
+    log:
+        "logs/fastqc.log"
+    shell:
+        """
+        fastqc {params.extra} {input} --extract -o {output} 2>> {log}
+        """
+````
+I got the following error:
+````
+/home/genomics/mhannaert/snakemake/Illuminapipeline
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+Traceback (most recent call last):
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/cli.py", line 1886, in args_to_api
+    dag_api = workflow_api.dag(
+              ^^^^^^^^^^^^^^^^^
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/api.py", line 326, in dag
+    return DAGApi(
+           ^^^^^^^
+  File "<string>", line 6, in __init__
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/api.py", line 436, in __post_init__
+    self.workflow_api._workflow.dag_settings = self.dag_settings
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/api.py", line 383, in _workflow
+    workflow.include(
+  File "/opt/miniforge3/envs/snakemake/lib/python3.12/site-packages/snakemake/workflow.py", line 1374, in include
+    exec(compile(code, snakefile.get_path_or_uri(), "exec"), self.globals)
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile", line 48, in <module>
+TypeError: can only concatenate str (not "list") to str
+````
+## THE SOLUTION TO MY BIG PROBLEM
+OKAY, AFTER LONG SEARCHING:
+````
+import os
+
+CONDITIONS = ["1", "2"]
+DIRS = ["00_fastqc","01_multiqc"]
+
+# Define directories
+REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
+sample_dir = REFDIR+"data/sampels/"
+result_dir = REFDIR+"results/"
+os.chdir(REFDIR)
+
+print(os.getcwd())
+sample_names = []
+sample_list = os.listdir(sample_dir)
+for i in range(len(sample_list)):
+    sample = sample_list[i]
+    if sample.endswith("_1.fq.gz"):
+        samples = sample.split("_1.fq")[0]
+        sample_names.append(samples)
+        print(sample_names)
+
+for dir in DIRS:
+    os.mkdir("results/"+dir)
+
+rule all:
+    input:
+        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS)
+
+
+rule fastqc: 
+    input:
+        "data/sampels/{names}_{con}.fq.gz"
+    output:
+        result = directory("results/00_fastqc/{names}_{con}_fastqc/")
+    log:
+        "logs/{names}_{con}.log"
+    params:
+        extra="-t 32"
+    shell:
+        """
+        fastqc {params.extra} {input} --extract -o results/00_fastqc/ 2>> {log}
+        """
+````
+I now realy understand snakemake
+So in a summary: 
+So when I look at this code The first thing:
+````
+import os
+
+CONDITIONS = ["1", "2"]
+DIRS = ["00_fastqc","01_multiqc"]
+
+# Define directories
+REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
+sample_dir = REFDIR+"data/sampels/"
+result_dir = REFDIR+"results/"
+os.chdir(REFDIR)
+print(os.getcwd())
+
+sample_names = []
+sample_list = os.listdir(sample_dir)
+for i in range(len(sample_list)):
+    sample = sample_list[i]
+    if sample.endswith("_1.fq.gz"):
+        samples = sample.split("_1.fq")[0]
+        sample_names.append(samples)
+        print(sample_names)
+
+for dir in DIRS:
+    os.mkdir("results/"+dir)
+````
+This part is all preparation, first I make variables of things I will need, then I will already make the file structure I need to put all my results in. So this wasn't the hard part and this was the part that already was correct, but now it's better. 
+
+Okay for the part after that I removed all the extra parts, so that I could check were it went wrong. So I removed the output directory, the log file and the option con and hard coded that part so that I really could check. 
+
+When I deleted this I still got an error. Now this was the moment I found in the documentation "the click" I needed, a rule eg. fastqc is just definging the step for one sample, so the expand that was there in the beginning was not correct, because for fastqc to perform you only need one sample and not a bunch like for a graph or something like that. So you only need to fill in the variables with curly brackets. That's also the reason that I took out the part about making the directory in the rule and placed it above.
+
+Then the place were these variables will be filled in is the "Rule all", here you need to define the variables like "con = CONDITIONS" because here you want all you results to be there and to be checked. So there can be multiple samples. The "rule" is just like defining a step and the "rule all" is for checking for all the samples. This was the part in my head that I missed. 
+
+So when I realised this I changed my code in this way:
+````
+rule all:
+    input:
+        expand("results/00_fastqc/{names}_1_fastqc/", names=sample_names)
+
+rule fastqc: 
+    input:
+        "data/sampels/{names}_1.fq.gz"
+    output:
+        result = directory("results/00_fastqc/{names}_{con}_fastqc/")
+        extra="-t 32"
+    shell:
+        """
+        fastqc {params.extra} {input} --extract 
+        """
+````
+And this worked, so then I went adding parts like the output directory, checked worked, then changing the 1 again to "con" and as last adding the log file. Also because of these variables that needed to be filled in in the log file you need to use the same, so the name of the log file needed also to contain these variables. With than the following part as result:
+````
+rule all:
+    input:
+        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS)
+
+
+rule fastqc: 
+    input:
+        "data/sampels/{names}_{con}.fq.gz"
+    output:
+        result = directory("results/00_fastqc/{names}_{con}_fastqc/")
+    log:
+        "logs/{names}_{con}.log"
+    params:
+        extra="-t 32"
+    shell:
+        """
+        fastqc {params.extra} {input} --extract -o results/00_fastqc/ 2>> {log}
+        """
+````
+So now it will as result gave the following output: 
+````
+/home/genomics/mhannaert/snakemake/Illuminapipeline
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+Building DAG of jobs...
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job       count
+------  -------
+all           1
+fastqc        4
+total         5
+
+Select jobs to execute...
+Execute 4 jobs...
+
+[Fri May 17 14:43:40 2024]
+localrule fastqc:
+    input: data/sampels/070_001_240321_001_0356_099_01_4691_1.fq.gz
+    output: results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc
+    log: logs/070_001_240321_001_0356_099_01_4691_1.log
+    jobid: 3
+    reason: Missing output files: results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc
+    wildcards: names=070_001_240321_001_0356_099_01_4691, con=1
+    resources: tmpdir=/tmp
+
+
+[Fri May 17 14:43:41 2024]
+localrule fastqc:
+    input: data/sampels/070_001_240321_001_0355_099_01_4691_2.fq.gz
+    output: results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc
+    log: logs/070_001_240321_001_0355_099_01_4691_2.log
+    jobid: 2
+    reason: Missing output files: results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc
+    wildcards: names=070_001_240321_001_0355_099_01_4691, con=2
+    resources: tmpdir=/tmp
+
+
+[Fri May 17 14:43:41 2024]
+localrule fastqc:
+    input: data/sampels/070_001_240321_001_0355_099_01_4691_1.fq.gz
+    output: results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc
+    log: logs/070_001_240321_001_0355_099_01_4691_1.log
+    jobid: 1
+    reason: Missing output files: results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc
+    wildcards: names=070_001_240321_001_0355_099_01_4691, con=1
+    resources: tmpdir=/tmp
+
+
+[Fri May 17 14:43:41 2024]
+localrule fastqc:
+    input: data/sampels/070_001_240321_001_0356_099_01_4691_2.fq.gz
+    output: results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc
+    log: logs/070_001_240321_001_0356_099_01_4691_2.log
+    jobid: 4
+    reason: Missing output files: results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc
+    wildcards: names=070_001_240321_001_0356_099_01_4691, con=2
+    resources: tmpdir=/tmp
+
+Analysis complete for 070_001_240321_001_0356_099_01_4691_2.fq.gz
+Analysis complete for 070_001_240321_001_0356_099_01_4691_1.fq.gz
+[Fri May 17 14:44:16 2024]
+Finished job 4.
+1 of 5 steps (20%) done
+[Fri May 17 14:44:17 2024]
+Finished job 3.
+2 of 5 steps (40%) done
+Analysis complete for 070_001_240321_001_0355_099_01_4691_1.fq.gz
+[Fri May 17 14:44:39 2024]
+Finished job 1.
+3 of 5 steps (60%) done
+Analysis complete for 070_001_240321_001_0355_099_01_4691_2.fq.gz
+[Fri May 17 14:44:41 2024]
+Finished job 2.
+4 of 5 steps (80%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Fri May 17 14:44:41 2024]
+localrule all:
+    input: results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc
+    jobid: 0
+    reason: Input files updated by another job: results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc, results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc
+    resources: tmpdir=/tmp
+
+[Fri May 17 14:44:41 2024]
+Finished job 0.
+5 of 5 steps (100%) done
+Complete log: .snakemake/log/2024-05-17T144340.504787.snakemake.log
+````
+So what happend: It will make all the preparations, then it will perform the rule, then It will check by the rule all if all the out^put is already there, if not it will perform the rule again till the rule all every combination of variables exist. 
+
+## adding the rest of steps 

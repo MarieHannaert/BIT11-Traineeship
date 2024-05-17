@@ -1,54 +1,42 @@
-# Define list of conditions
-IDS, = glob_wildcards("data/samples/{id}_1.fq.gz")
+import os
+
 CONDITIONS = ["1", "2"]
+DIRS = ["00_fastqc","01_multiqc"]
 
 # Define directories
 REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
+sample_dir = REFDIR+"data/sampels/"
+result_dir = REFDIR+"results/"
+os.chdir(REFDIR)
+
+print(os.getcwd())
+sample_names = []
+sample_list = os.listdir(sample_dir)
+for i in range(len(sample_list)):
+    sample = sample_list[i]
+    if sample.endswith("_1.fq.gz"):
+        samples = sample.split("_1.fq")[0]
+        sample_names.append(samples)
+        print(sample_names)
+
+for dir in DIRS:
+    os.mkdir("results/"+dir)
 
 rule all:
-    input: 
-        "results/00_fastqc/", "results/01_multiqc/",
-        expand("results/00_fastqc/{id}_{con}_fastqc.zip", id=IDS, con=CONDITIONS), 
-        expand("results/00_fastqc/{id}_{con}_fastqc.html",id=IDS, con=CONDITIONS)
-rule Making_results_dir:
+    input:
+        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS)
+
+
+rule fastqc: 
+    input:
+        "data/sampels/{names}_{con}.fq.gz"
     output:
-        directory("results/")
-    shell:
-        """
-        mkdir -p {output}
-        cd {output}
-        """
-rule Making_output_dirs:
-    output:
-        directory("00_fastqc/"),
-        directory("01_multiqc")
-    shell:
-        """
-        mkdir -p {output[0]}
-        mkdir -p {output[1]}
-        """
-# Rule to perform FastQC analysis
-rule fastqc:
-    output:
-        directory("results/00_fastqc/"),
-        expand("results/00_fastqc/{id}_{con}_fastqc.zip", id=IDS, con=CONDITIONS),
-        expand("results/00_fastqc/{id}_{con}_fastqc.html",id=IDS, con=CONDITIONS)
+        result = directory("results/00_fastqc/{names}_{con}_fastqc/")
     log:
-        "logs/fastqc.log"
+        "logs/{names}_{con}.log"
+    params:
+        extra="-t 32"
     shell:
         """
-        mkdir -p results/00_fastqc/
-        fastqc -t 32 data/samples/*.gz --extract -o {output[0]} 2>> {log}
-        """   
-rule multiqc:
-    output:
-        directory("results/01_multiqc/")
-    log:
-        "logs/multiqc.log"
-    conda:
-        "envs/multiqc.yml"
-    shell:
-        """
-        mkdir -p results/01_multiqc/
-        multiqc results/00_fastqc/ -o results/01_multiqc/ 2>> {log}
+        fastqc {params.extra} {input} --extract -o results/00_fastqc/ 2>> {log}
         """

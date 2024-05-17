@@ -1521,4 +1521,285 @@ Finished job 0.
 2 of 2 steps (100%) done
 Complete log: .snakemake/log/2024-05-17T154654.246478.snakemake.log
 ````
+### Kraken2 and Krona
+I added:
+````
+rule Kraken2:
+    input:
+        "data/sampels/{names}_{con}.fq.gz"
+    output:
+        "results/02_kraken2/{names}_{con}_kraken2.report"
+    params:
+        threads=16
+    log:
+        "logs/Kraken2_{names}_{con}.log"
+    shell:
+        """
+        kraken2 --gzip-compressed {input} --db /var/db/kraken2/Standard --report {output} --threads {params.threads} --quick --memory-mapping 2>> {log}
+        """
 
+rule Krona:
+    input:
+        "results/02_kraken2/{names}_{con}_kraken2.report"
+    output:
+        "results/03_krona/{names}_{con}_krona.html"
+    params:
+        extra="-t 5 -m 3"
+    log:
+        "logs/Krona_{names}_{con}.log"
+    conda:
+        "envs/krona.yml"
+    shell:
+        """
+        ktImportTaxonomy {params.extra} -o {output} {input} 2>> {log}
+        """
+````
+Kraken worked but there went something wrong with the krona, this is the content of the log file:
+````
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Creating conda environment envs/krona.yml...
+Downloading and installing remote packages.
+Environment for /home/genomics/mhannaert/snakemake/Illuminapipeline/envs/krona.yml created (location: .snakemake/conda/cce02dcec3898e2025b146bc478991b8_)
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job        count
+-------  -------
+Kraken2        4
+Krona          4
+all            1
+total          9
+
+Select jobs to execute...
+Execute 4 jobs...
+
+[Fri May 17 15:57:47 2024]
+localrule Kraken2:
+    input: data/sampels/070_001_240321_001_0356_099_01_4691_1.fq.gz
+    output: results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report
+    log: logs/070_001_240321_001_0356_099_01_4691_1_Kraken2.log
+    jobid: 8
+    reason: Missing output files: results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report
+    wildcards: names=070_001_240321_001_0356_099_01_4691, con=1
+    resources: tmpdir=/tmp
+
+
+[Fri May 17 15:57:47 2024]
+localrule Kraken2:
+    input: data/sampels/070_001_240321_001_0356_099_01_4691_2.fq.gz
+    output: results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report
+    log: logs/070_001_240321_001_0356_099_01_4691_2_Kraken2.log
+    jobid: 9
+    reason: Missing output files: results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report
+    wildcards: names=070_001_240321_001_0356_099_01_4691, con=2
+    resources: tmpdir=/tmp
+
+
+[Fri May 17 15:57:47 2024]
+localrule Kraken2:
+    input: data/sampels/070_001_240321_001_0355_099_01_4691_2.fq.gz
+    output: results/02_kraken2/070_001_240321_001_0355_099_01_4691_2_kraken2.report
+    log: logs/070_001_240321_001_0355_099_01_4691_2_Kraken2.log
+    jobid: 7
+    reason: Missing output files: results/02_kraken2/070_001_240321_001_0355_099_01_4691_2_kraken2.report
+    wildcards: names=070_001_240321_001_0355_099_01_4691, con=2
+    resources: tmpdir=/tmp
+
+
+[Fri May 17 15:57:47 2024]
+localrule Kraken2:
+    input: data/sampels/070_001_240321_001_0355_099_01_4691_1.fq.gz
+    output: results/02_kraken2/070_001_240321_001_0355_099_01_4691_1_kraken2.report
+    log: logs/070_001_240321_001_0355_099_01_4691_1_Kraken2.log
+    jobid: 6
+    reason: Missing output files: results/02_kraken2/070_001_240321_001_0355_099_01_4691_1_kraken2.report
+    wildcards: names=070_001_240321_001_0355_099_01_4691, con=1
+    resources: tmpdir=/tmp
+
+[Fri May 17 16:13:19 2024]
+Finished job 9.
+1 of 9 steps (11%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Fri May 17 16:13:23 2024]
+localrule Krona:
+    input: results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report
+    output: results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html
+    log: logs/070_001_240321_001_0356_099_01_4691_2_Krona.log
+    jobid: 13
+    reason: Missing output files: results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html; Input files updated by another job: results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report
+    wildcards: names=070_001_240321_001_0356_099_01_4691, con=2
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/cce02dcec3898e2025b146bc478991b8_
+[Fri May 17 16:13:25 2024]
+Finished job 8.
+2 of 9 steps (22%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Fri May 17 16:13:29 2024]
+[Fri May 17 16:13:29 2024]
+Error in rule Krona:
+    jobid: 13
+    input: results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report
+    output: results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html
+    log: logs/070_001_240321_001_0356_099_01_4691_2_Krona.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/cce02dcec3898e2025b146bc478991b8_
+    shell:
+        
+        ktImportTaxonomy -t 5 -m 3 -o results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report 2>> logs/070_001_240321_001_0356_099_01_4691_2_Krona.log
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+localrule Krona:
+    input: results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report
+    output: results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html
+    log: logs/070_001_240321_001_0356_099_01_4691_1_Krona.log
+    jobid: 12
+    reason: Missing output files: results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html; Input files updated by another job: results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report
+    wildcards: names=070_001_240321_001_0356_099_01_4691, con=1
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/cce02dcec3898e2025b146bc478991b8_
+[Fri May 17 16:13:32 2024]
+Error in rule Krona:
+    jobid: 12
+    input: results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report
+    output: results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html
+    log: logs/070_001_240321_001_0356_099_01_4691_1_Krona.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/cce02dcec3898e2025b146bc478991b8_
+    shell:
+        
+        ktImportTaxonomy -t 5 -m 3 -o results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report 2>> logs/070_001_240321_001_0356_099_01_4691_1_Krona.log
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+[Fri May 17 16:18:45 2024]
+Finished job 6.
+3 of 9 steps (33%) done
+[Fri May 17 16:18:50 2024]
+Finished job 7.
+4 of 9 steps (44%) done
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-17T155702.055817.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+````
+I asked my supervisor for this error, apparently to use krona you first have to execute a certain script updateTaxonomy.sh (https://github.com/marbl/Krona/wiki/Installing) before you can use the tool -> "This will install the local taxonomy database, which uses less than 100Mb of disk space and should take a few minutes or less to run. It can also be run later to keep the local database up to date with NCBI."
+
+
+Now I runned my Snakemake again: 
+````
+/home/genomics/mhannaert/snakemake/Illuminapipeline
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job      count
+-----  -------
+Krona        4
+all          1
+total        5
+
+Select jobs to execute...
+Execute 4 jobs...
+
+[Fri May 17 16:47:58 2024]
+localrule Krona:
+    input: results/02_kraken2/070_001_240321_001_0355_099_01_4691_1_kraken2.report
+    output: results/03_krona/070_001_240321_001_0355_099_01_4691_1_krona.html
+    log: logs/Krona_070_001_240321_001_0355_099_01_4691_1.log
+    jobid: 10
+    reason: Missing output files: results/03_krona/070_001_240321_001_0355_099_01_4691_1_krona.html
+    wildcards: names=070_001_240321_001_0355_099_01_4691, con=1
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/cce02dcec3898e2025b146bc478991b8_
+
+[Fri May 17 16:47:58 2024]
+localrule Krona:
+    input: results/02_kraken2/070_001_240321_001_0355_099_01_4691_2_kraken2.report
+    output: results/03_krona/070_001_240321_001_0355_099_01_4691_2_krona.html
+    log: logs/Krona_070_001_240321_001_0355_099_01_4691_2.log
+    jobid: 11
+    reason: Missing output files: results/03_krona/070_001_240321_001_0355_099_01_4691_2_krona.html
+    wildcards: names=070_001_240321_001_0355_099_01_4691, con=2
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/cce02dcec3898e2025b146bc478991b8_
+
+[Fri May 17 16:47:58 2024]
+localrule Krona:
+    input: results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report
+    output: results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html
+    log: logs/Krona_070_001_240321_001_0356_099_01_4691_2.log
+    jobid: 13
+    reason: Missing output files: results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html
+    wildcards: names=070_001_240321_001_0356_099_01_4691, con=2
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/cce02dcec3898e2025b146bc478991b8_
+
+[Fri May 17 16:47:58 2024]
+localrule Krona:
+    input: results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report
+    output: results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html
+    log: logs/Krona_070_001_240321_001_0356_099_01_4691_1.log
+    jobid: 12
+    reason: Missing output files: results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html
+    wildcards: names=070_001_240321_001_0356_099_01_4691, con=1
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/cce02dcec3898e2025b146bc478991b8_
+Loading taxonomy...
+Loading taxonomy...
+Loading taxonomy...
+Loading taxonomy...
+Importing results/02_kraken2/070_001_240321_001_0355_099_01_4691_1_kraken2.report...
+Importing results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report...
+Writing results/03_krona/070_001_240321_001_0355_099_01_4691_1_krona.html...
+Importing results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report...
+Importing results/02_kraken2/070_001_240321_001_0355_099_01_4691_2_kraken2.report...
+Writing results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html...
+Writing results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html...
+Writing results/03_krona/070_001_240321_001_0355_099_01_4691_2_krona.html...
+[Fri May 17 16:48:05 2024]
+Finished job 10.
+1 of 5 steps (20%) done
+[Fri May 17 16:48:05 2024]
+Finished job 12.
+2 of 5 steps (40%) done
+[Fri May 17 16:48:06 2024]
+Finished job 11.
+3 of 5 steps (60%) done
+[Fri May 17 16:48:06 2024]
+Finished job 13.
+4 of 5 steps (80%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Fri May 17 16:48:06 2024]
+localrule all:
+    input: results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc, results/01_multiqc/multiqc_report.html, results/02_kraken2/070_001_240321_001_0355_099_01_4691_1_kraken2.report, results/02_kraken2/070_001_240321_001_0355_099_01_4691_2_kraken2.report, results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report, results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report, results/03_krona/070_001_240321_001_0355_099_01_4691_1_krona.html, results/03_krona/070_001_240321_001_0355_099_01_4691_2_krona.html, results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html, results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html
+    jobid: 0
+    reason: Input files updated by another job: results/03_krona/070_001_240321_001_0355_099_01_4691_1_krona.html, results/03_krona/070_001_240321_001_0355_099_01_4691_2_krona.html, results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html, results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html
+    resources: tmpdir=/tmp
+
+[Fri May 17 16:48:06 2024]
+Finished job 0.
+5 of 5 steps (100%) done
+Complete log: .snakemake/log/2024-05-17T164755.516751.snakemake.log
+````
+So these steps also worked. 
+### fastp 

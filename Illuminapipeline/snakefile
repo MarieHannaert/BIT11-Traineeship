@@ -1,7 +1,7 @@
 import os
 
 CONDITIONS = ["1", "2"]
-DIRS = ["00_fastqc","01_multiqc"]
+DIRS = ["00_fastqc","01_multiqc", "02_kraken2","03_krona"]
 
 # Define directories
 REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
@@ -26,7 +26,9 @@ for dir in DIRS:
 rule all:
     input:
         expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS),
-        "results/01_multiqc/multiqc_report.html"
+        "results/01_multiqc/multiqc_report.html",
+        expand("results/02_kraken2/{names}_{con}_kraken2.report", names=sample_names, con = CONDITIONS),
+        expand("results/03_krona/{names}_{con}_krona.html", names=sample_names, con = CONDITIONS)
 
 
 rule fastqc: 
@@ -35,7 +37,7 @@ rule fastqc:
     output:
         result = directory("results/00_fastqc/{names}_{con}_fastqc/")
     log:
-        "logs/{names}_{con}_fastqc.log"
+        "logs/fastqc_{names}_{con}.log"
     params:
         extra="-t 32"
     shell:
@@ -57,4 +59,34 @@ rule multiqc:
     shell:
         """
         multiqc {input[1]} -o {output.result} 2>> {log}
+        """
+
+rule Kraken2:
+    input:
+        "data/sampels/{names}_{con}.fq.gz"
+    output:
+        "results/02_kraken2/{names}_{con}_kraken2.report"
+    params:
+        threads=16
+    log:
+        "logs/Kraken2_{names}_{con}.log"
+    shell:
+        """
+        kraken2 --gzip-compressed {input} --db /var/db/kraken2/Standard --report {output} --threads {params.threads} --quick --memory-mapping 2>> {log}
+        """
+
+rule Krona:
+    input:
+        "results/02_kraken2/{names}_{con}_kraken2.report"
+    output:
+        "results/03_krona/{names}_{con}_krona.html"
+    params:
+        extra="-t 5 -m 3"
+    log:
+        "logs/Krona_{names}_{con}.log"
+    conda:
+        "envs/krona.yml"
+    shell:
+        """
+        ktImportTaxonomy {params.extra} -o {output} {input} 2>> {log}
         """

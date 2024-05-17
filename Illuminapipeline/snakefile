@@ -20,11 +20,13 @@ for i in range(len(sample_list)):
         print(sample_names)
 
 for dir in DIRS:
-    os.mkdir("results/"+dir)
+    if os.path.isdir("results/"+dir) == False:
+        os.mkdir("results/"+dir)
 
 rule all:
     input:
-        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS)
+        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS),
+        "results/01_multiqc/multiqc_report.html"
 
 
 rule fastqc: 
@@ -33,10 +35,26 @@ rule fastqc:
     output:
         result = directory("results/00_fastqc/{names}_{con}_fastqc/")
     log:
-        "logs/{names}_{con}.log"
+        "logs/{names}_{con}_fastqc.log"
     params:
         extra="-t 32"
     shell:
         """
         fastqc {params.extra} {input} --extract -o results/00_fastqc/ 2>> {log}
+        """
+
+rule multiqc:
+    input:
+        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS),
+        "results/00_fastqc/"
+    output:
+        "results/01_multiqc/multiqc_report.html",
+        result = directory("results/01_multiqc/")  
+    log:
+        "logs/multiqc.log"
+    conda:
+        "envs/multiqc.yml"
+    shell:
+        """
+        multiqc {input[1]} -o {output.result} 2>> {log}
         """

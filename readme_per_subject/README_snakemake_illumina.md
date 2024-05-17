@@ -1451,3 +1451,74 @@ Complete log: .snakemake/log/2024-05-17T144340.504787.snakemake.log
 So what happend: It will make all the preparations, then it will perform the rule, then It will check by the rule all if all the out^put is already there, if not it will perform the rule again till the rule all every combination of variables exist. 
 
 ## adding the rest of steps 
+### multiqc
+I will start with multiqc, I added the following part: 
+````
+rule multiqc:
+    input:
+        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS),
+        "results/00_fastqc/"
+    output:
+        "results/01_multiqc/multiqc_report.html",
+        result = directory("results/01_multiqc/")  
+    log:
+        "logs/multiqc.log"
+    conda:
+        "envs/multiqc.yml"
+    shell:
+        """
+        multiqc {input[1]} -o {output.result} 2>> {log}
+        """
+````
+This worked. 
+
+output:
+````
+/home/genomics/mhannaert/snakemake/Illuminapipeline
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job        count
+-------  -------
+all            1
+multiqc        1
+total          2
+
+Select jobs to execute...
+Execute 1 jobs...
+
+[Fri May 17 15:46:56 2024]
+localrule multiqc:
+    input: results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc, results/00_fastqc
+    output: results/01_multiqc/multiqc_report.html, results/01_multiqc
+    log: logs/multiqc.log
+    jobid: 5
+    reason: Missing output files: results/01_multiqc/multiqc_report.html; Code has changed since last execution
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/f603d5f182bf6b4214b829cdb04e8efc_
+[Fri May 17 15:47:14 2024]
+Finished job 5.
+1 of 2 steps (50%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Fri May 17 15:47:14 2024]
+localrule all:
+    input: results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc, results/01_multiqc/multiqc_report.html
+    jobid: 0
+    reason: Input files updated by another job: results/01_multiqc/multiqc_report.html
+    resources: tmpdir=/tmp
+
+[Fri May 17 15:47:14 2024]
+Finished job 0.
+2 of 2 steps (100%) done
+Complete log: .snakemake/log/2024-05-17T154654.246478.snakemake.log
+````
+

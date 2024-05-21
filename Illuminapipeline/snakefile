@@ -4,7 +4,8 @@ CONDITIONS = ["1", "2"]
 
 # Define directories
 REFDIR = os.getcwd()
-sample_dir = REFDIR+"/data/sampels/"
+print(REFDIR)
+sample_dir = REFDIR+"/data/samples"
 
 sample_names = []
 sample_list = os.listdir(sample_dir)
@@ -17,25 +18,21 @@ for i in range(len(sample_list)):
 
 rule all:
     input:
-        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS),
         "results/01_multiqc/multiqc_report.html",
-        expand("results/02_kraken2/{names}_{con}_kraken2.report", names=sample_names, con = CONDITIONS),
         expand("results/03_krona/{names}_{con}_krona.html", names=sample_names, con = CONDITIONS),
-        expand("results/04_fastp/{names}_1.fq.gz", names=sample_names),
-        expand("results/04_fastp/{names}_2.fq.gz", names=sample_names),
         expand("results/04_fastp/{names}_fastp.html", names=sample_names),
         expand("results/04_fastp/{names}_fastp.json", names=sample_names),
-        expand("results/05_shovill/{names}/", names=sample_names),
+        expand("results/05_shovill/{names}", names=sample_names),
         expand("results/assemblies/{names}.fna", names=sample_names),
         "results/06_skani/skani_results_file.txt",
-        expand("results/07_quast/{names}/", names = sample_names),
         "results/07_quast/quast_summary_table.txt",
         "results/06_skani/skANI_Quast_output.xlsx",
-        "results/07_quast/beeswarm_vis_assemblies.png"
+        "results/07_quast/beeswarm_vis_assemblies.png",
+        "results/busco_summary"
 
 rule fastqc: 
     input:
-        "data/sampels/{names}_{con}.fq.gz"
+        "data/samples/{names}_{con}.fq.gz"
     output:
         result = directory("results/00_fastqc/{names}_{con}_fastqc/")
     log:
@@ -65,7 +62,7 @@ rule multiqc:
 
 rule Kraken2:
     input:
-        "data/sampels/{names}_{con}.fq.gz"
+        "data/samples/{names}_{con}.fq.gz"
     output:
         "results/02_kraken2/{names}_{con}_kraken2.report"
     params:
@@ -95,8 +92,8 @@ rule Krona:
 
 rule Fastp:
     input:
-        first = "data/sampels/{names}_1.fq.gz",
-        second = "data/sampels/{names}_2.fq.gz"
+        first = "data/samples/{names}_1.fq.gz",
+        second = "data/samples/{names}_2.fq.gz"
     output:
         first = "results/04_fastp/{names}_1.fq.gz",
         second = "results/04_fastp/{names}_2.fq.gz",
@@ -116,7 +113,9 @@ rule shovill:
         first = "results/04_fastp/{names}_1.fq.gz",
         second = "results/04_fastp/{names}_2.fq.gz"
     output: 
+        "results/05_shovill/{names}/contigs.fa",
         result = directory("results/05_shovill/{names}/")
+        
     params:
         extra = "--cpus 16 --ram 16 --minlen 500 --trim"
     log:
@@ -135,12 +134,14 @@ rule contigs:
         "results/assemblies/{names}.fna"
     shell:
         """
-        cp {input} {output}
+        cd {input}
+        for d in $(ls -d *); do cp "$d"/contigs.fa ../assemblies/"$d".fna; done
+        cd ../..
         """
 
 rule skani:
     input:
-        "results/assemblies"
+        expand("results/assemblies/{names}.fna", names=sample_names)
     output:
         result = "results/06_skani/skani_results_file.txt"
     params:
@@ -151,7 +152,7 @@ rule skani:
        "envs/skani.yaml"
     shell:
         """
-        skani search {input}/*.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o {output} {params.extra} 2>> {log}
+        skani search {input} -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o {output} {params.extra} 2>> {log}
         """
 
 rule quast:
@@ -165,12 +166,12 @@ rule quast:
         "envs/quast.yaml"
     shell:
         """
-        quast.py {input} -o {output}
+        quast.py {input} -o {output} 2>> {log}
         """
 
 rule summarytable:
     input:
-        "results/07_quast/"
+        expand("results/07_quast/{names}", names = sample_names)
     output: 
         "results/07_quast/quast_summary_table.txt"
     shell:
@@ -215,4 +216,45 @@ rule beeswarm:
         """
             beeswarm_vis_assemblies.R {input}
             mv beeswarm_vis_assemblies.png results/07_quast/
+        """
+
+rule busco:
+    input: 
+        "results/assemblies/{names}.fna"
+    output:
+        directory("results/08_busco/{names}")
+    params:
+        extra= "-m genome --auto-lineage-prok -c 32"
+    log: 
+        "logs/busco_{names}.log"
+    conda:
+        "envs/busco.yaml"
+    shell:
+        """
+        busco -i {input} -o {output} {params.extra} 2>> {log}
+        """
+
+rule buscosummary:
+    input:
+        expand("results/08_busco/{names}", names=sample_names)
+    output:
+        directory("results/busco_summary")
+    conda:
+        "envs/busco.yaml"
+    shell:
+        """
+        mkdir -p {output}
+        cp {input}*/*/short_summary.specific.burkholderiales_odb10.*.txt {output}
+        cd {output}
+        for i in $(seq 1 15 $(ls -1 | wc -l)); do
+            echo "Verwerking van bestanden $i tot $((i+14))"
+            mkdir -p part_"$i-$((i+14))"
+            find . -maxdepth 1 -type f | tail -n +$i | head -15 | while read file; do
+                echo "Verwerking van bestand: $file"
+                mv "$file" part_"$i-$((i+14))"
+            done
+            generate_plot.py -wd part_"$i-$((i+14))"
+        done
+        cd ../..
+        rm -dr busco_downloads
         """

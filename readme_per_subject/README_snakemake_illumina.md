@@ -2116,3 +2116,82 @@ rule skani:
 ````
 This worked. 
 
+### quast
+I added the following part: 
+````
+rule quast:
+    input:
+        "results/assemblies/{names}.fna"
+    output:
+        directory("results/07_quast/{names}/")
+    log:
+        "logs/quast_{names}.log"
+    conda:
+        "envs/quast.yaml"
+    shell:
+        """
+        quast.py {input} -o {output}
+        """
+````
+### making quast summarytable 
+I added the part for the summary table: 
+````
+rule summarytable:
+    input:
+        "results/07_quast/"
+    output: 
+        "results/07_quast/quast_summary_table.txt"
+    shell:
+        """
+        touch {output}
+        echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> {output}
+        # Initialize a counter
+        counter=1
+
+        # Loop over all the transposed_report.tsv files and read them
+        for file in $(find -type f -name "transposed_report.tsv"); do
+            # Show progress
+            echo "Processing file: $counter"
+
+            # Add the content of each file to the summary table (excluding the header)
+            tail -n +2 "$file" >> {output}
+
+            # Increment the counter
+            counter=$((counter+1))
+        done
+        """
+````
+I performed the snakemake and it worked. 
+
+### making xlsx skani and quast
+````
+rule xlsx:
+    input:
+        "results/07_quast/quast_summary_table.txt",
+        "results/06_skani/skani_results_file.txt",
+        result = "results/"
+    output:
+        "results/06_skani/skANI_Quast_output.xlsx"
+    shell:
+        """
+          skani_quast_to_xlsx.py {input.result}
+          mv results/skANI_Quast_output.xlsx results/06_skani/
+        """
+````
+This worked 
+### making beeswarm 
+````
+rule beeswarm:
+    input:
+        "results/07_quast/quast_summary_table.txt"
+    output:
+        "results/07_quast/beeswarm_vis_assemblies.png"
+    shell: 
+        """
+            beeswarm_vis_assemblies.R {input}
+            mv beeswarm_vis_assemblies.png results/07_quast/
+        """
+````
+This worked.
+### busco
+### busco visualisatie 

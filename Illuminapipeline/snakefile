@@ -27,7 +27,11 @@ rule all:
         expand("results/04_fastp/{names}_fastp.json", names=sample_names),
         expand("results/05_shovill/{names}/", names=sample_names),
         expand("results/assemblies/{names}.fna", names=sample_names),
-        "results/06_skani/skani_results_file.txt"
+        "results/06_skani/skani_results_file.txt",
+        expand("results/07_quast/{names}/", names = sample_names),
+        "results/07_quast/quast_summary_table.txt",
+        "results/06_skani/skANI_Quast_output.xlsx",
+        "results/07_quast/beeswarm_vis_assemblies.png"
 
 rule fastqc: 
     input:
@@ -148,4 +152,67 @@ rule skani:
     shell:
         """
         skani search {input}/*.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o {output} {params.extra} 2>> {log}
+        """
+
+rule quast:
+    input:
+        "results/assemblies/{names}.fna"
+    output:
+        directory("results/07_quast/{names}/")
+    log:
+        "logs/quast_{names}.log"
+    conda:
+        "envs/quast.yaml"
+    shell:
+        """
+        quast.py {input} -o {output}
+        """
+
+rule summarytable:
+    input:
+        "results/07_quast/"
+    output: 
+        "results/07_quast/quast_summary_table.txt"
+    shell:
+        """
+        touch {output}
+        echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> {output}
+        # Initialize a counter
+        counter=1
+
+        # Loop over all the transposed_report.tsv files and read them
+        for file in $(find -type f -name "transposed_report.tsv"); do
+            # Show progress
+            echo "Processing file: $counter"
+
+            # Add the content of each file to the summary table (excluding the header)
+            tail -n +2 "$file" >> {output}
+
+            # Increment the counter
+            counter=$((counter+1))
+        done
+        """
+
+rule xlsx:
+    input:
+        "results/07_quast/quast_summary_table.txt",
+        "results/06_skani/skani_results_file.txt",
+        result = "results/"
+    output:
+        "results/06_skani/skANI_Quast_output.xlsx"
+    shell:
+        """
+          skani_quast_to_xlsx.py {input.result}
+          mv results/skANI_Quast_output.xlsx results/06_skani/
+        """
+
+rule beeswarm:
+    input:
+        "results/07_quast/quast_summary_table.txt"
+    output:
+        "results/07_quast/beeswarm_vis_assemblies.png"
+    shell: 
+        """
+            beeswarm_vis_assemblies.R {input}
+            mv beeswarm_vis_assemblies.png results/07_quast/
         """

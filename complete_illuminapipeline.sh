@@ -172,14 +172,11 @@ conda activate multiqc
 #perfomring the multiqc on the fastqc samples
 cd "$OUT"
 echo performing multiqc | tee -a "$DATE_TIME"_Illuminapipeline.log
-multiqc 00_fastqc 2>> "$DATE_TIME"_Illuminapipeline.log
+multiqc 00_fastqc -o 01_multiqc/ 2>> "$DATE_TIME"_Illuminapipeline.log
 echo removing 00_fastqc/ | tee -a "$DATE_TIME"_Illuminapipeline.log
 rm -rd 00_fastqc/ 2>> "$DATE_TIME"_Illuminapipeline.log
 #deactivating the mamba env
 conda deactivate
-#renaming the multiqc directory 
-mv multiqc_data/ 01_multiqc
-mv multiqc_report.html 01_multiqc/ 
 
 #going back up to the samples
 cd ..
@@ -187,23 +184,23 @@ cd ..
 echo "multiqc done, starting Kraken and krona at $(date '+%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 #kraken2 and krona part
 conda activate krona
-mkdir -p "$OUT"/02_Kraken_krona
-touch "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
-touch "$OUT"/02_Kraken_krona/"$DATE_TIME"_krona.log
+mkdir -p "$OUT"/02_03_Kraken_krona
+touch "$OUT"/02_03_Kraken_krona/"$DATE_TIME"_kraken.log
+touch "$OUT"/02_03_Kraken_krona/"$DATE_TIME"_krona.log
 #Kraken2
 for sample in $(ls *.fq.gz | awk 'BEGIN{FS=".fq.*"}{print $1}')
 do
     #running Kraken2 on each sample
-    echo "Running Kraken2 on $sample" | tee -a "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
-    #kraken2 --gzip-compressed "$sample".fq.gz --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/02_Kraken_krona/"$sample"_kraken2.report --threads "$4" --quick --memory-mapping 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
-    kraken2 --gzip-compressed "$sample".fq.gz --db /var/db/kraken2/Standard --report "$OUT"/02_Kraken_krona/"$sample"_kraken2.report --threads "$4" --quick --memory-mapping 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
+    echo "Running Kraken2 on $sample" | tee -a "$OUT"/02_03_Kraken_krona/"$DATE_TIME"_kraken.log
+    #kraken2 --gzip-compressed "$sample".fq.gz --db /home/genomics/bioinf_databases/kraken2/Standard --report "$OUT"/02_03_Kraken_krona/"$sample"_kraken2.report --threads "$4" --quick --memory-mapping 2>> "$OUT"/02_03_Kraken_krona/"$DATE_TIME"_kraken.log
+    kraken2 --gzip-compressed "$sample".fq.gz --db /var/db/kraken2/Standard --report "$OUT"/02_03_Kraken_krona/"$sample"_kraken2.report --threads "$4" --quick --memory-mapping 2>> "$OUT"/02_03_Kraken_krona/"$DATE_TIME"_kraken.log
     #running Krona on the report
-    echo "Running Krona on $sample" |tee -a "$OUT"/02_Kraken_krona/"$DATE_TIME"_krona.log
-    ktImportTaxonomy -t 5 -m 3 -o "$OUT"/02_Kraken_krona/"$sample"_krona.html "$OUT"/02_Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_krona.log
+    echo "Running Krona on $sample" |tee -a "$OUT"/02_03_Kraken_krona/"$DATE_TIME"_krona.log
+    ktImportTaxonomy -t 5 -m 3 -o "$OUT"/02_03_Kraken_krona/"$sample"_krona.html "$OUT"/02_03_Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/02_03_Kraken_krona/"$DATE_TIME"_krona.log
 
     #removing the kraken reports after using these for krona
-    echo "Removing kraken2 report" | tee -a "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
-    rm "$OUT"/02_Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/02_Kraken_krona/"$DATE_TIME"_kraken.log
+    echo "Removing kraken2 report" | tee -a "$OUT"/02_03_Kraken_krona/"$DATE_TIME"_kraken.log
+    rm "$OUT"/02_03_Kraken_krona/"$sample"_kraken2.report 2>> "$OUT"/02_03_Kraken_krona/"$DATE_TIME"_kraken.log
 done
 
 echo "Finished running Kraken2 and Krona and starting fastp at $(date '+%H:%M')"  | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
@@ -211,14 +208,14 @@ conda deactivate
 
 #now perfroming fastp on the samples
 #making a folder for the trimmed samples
-mkdir -p "$OUT"/03_fastp
-touch "$OUT"/03_fastp/"$DATE_TIME"_fastp.log
+mkdir -p "$OUT"/04_fastp
+touch "$OUT"/04_fastp/"$DATE_TIME"_fastp.log
 #loop over read files
 echo "performing trimming with fastp" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 for g in $(ls *_1.fq.gz | awk 'BEGIN{FS="_1.fq.gz"}{print $1}')
 do
     echo "Working on trimming genome $g with fastp" 
-    fastp -w 32 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o "$OUT"/03_fastp/"$g"_1.fq.gz -O "$OUT"/03_fastp/"$g"_2.fq.gz -h "$OUT"/03_fastp/"$g"_fastp.html -j "$OUT"/03_fastp/"$g"_fastp.json --detect_adapter_for_pe 2>> "$OUT"/03_fastp/"$DATE_TIME"_fastp.log
+    fastp -w 32 -i "$g"_1.fq.gz -I "$g"_2.fq.gz -o "$OUT"/04_fastp/"$g"_1.fq.gz -O "$OUT"/04_fastp/"$g"_2.fq.gz -h "$OUT"/04_fastp/"$g"_fastp.html -j "$OUT"/04_fastp/"$g"_fastp.json --detect_adapter_for_pe 2>> "$OUT"/04_fastp/"$DATE_TIME"_fastp.log
 done
 echo "Finished trimming with fastp and starting shovill at $(date '+%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
 
@@ -226,9 +223,9 @@ echo "Finished trimming with fastp and starting shovill at $(date '+%H:%M')" | t
 #Shovill part
 conda activate shovill
 #making a folder for the output 
-mkdir -p "$OUT"/04_shovill
+mkdir -p "$OUT"/05_shovill
 #moving in to the file with the needed samples
-cd "$OUT"/03_fastp/
+cd "$OUT"/04_fastp/
 
 FILES=(*_1.fq.gz)
 #loop over all files in $FILES and do the assembly for each of the files
@@ -237,7 +234,7 @@ do
 	SAMPLE=$(basename "$f" _1.fq.gz)  	#extract the basename from the file and store it in the variable SAMPLE
 
 	#run Shovill
-	shovill --R1 "$SAMPLE"_1.fq.gz --R2 "$SAMPLE"_2.fq.gz --cpus 16 --ram 16 --minlen 500 --trim -outdir ../04_shovill/"$SAMPLE"/ 
+	shovill --R1 "$SAMPLE"_1.fq.gz --R2 "$SAMPLE"_2.fq.gz --cpus 16 --ram 16 --minlen 500 --trim -outdir ../05_shovill/"$SAMPLE"/ 
 	echo "Assembly $SAMPLE done" ! 
 done
 echo "Assembly done!" | tee -a ../"$DATE_TIME"_Illuminapipeline.log
@@ -248,7 +245,7 @@ conda deactivate
 #selecting and moving needed files 
 #moving to location top perform the following command
 mkdir -p assemblies
-cd 04_shovill/
+cd 05_shovill/
 #collecting all the contigs.fa files in assemblies folder
 echo "collecting contig files in assemblies/" | tee -a ../"$DATE_TIME"_Illuminapipeline.log
 for d in $(ls -d *); do cp "$d"/contigs.fa ../assemblies/"$d".fna; done
@@ -256,8 +253,8 @@ for d in $(ls -d *); do cp "$d"/contigs.fa ../assemblies/"$d".fna; done
 cd ..
 #removing the data that is not needed anymore 
 echo "removing fastp samples" | tee -a "$DATE_TIME"_Illuminapipeline.log
-rm 03_fastp/*.fq.gz 
-#rm 04_shovill/*/*{.fa,.gfa,.corrections,.fasta}
+rm 04_fastp/*.fq.gz 
+#rm 05_shovill/*/*{.fa,.gfa,.corrections,.fasta}
 
 echo "Finished Shovill and starting skANI at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Illuminapipeline.log
 
@@ -265,11 +262,11 @@ echo "Finished Shovill and starting skANI at $(date '+%H:%M')" | tee -a "$DATE_T
 # performing skani
 conda activate skani 
 #making a directory and a log file 
-mkdir -p 05_skani 
-touch 05_skani/"$DATE_TIME"_skani.log
+mkdir -p 06_skani 
+touch 06_skani/"$DATE_TIME"_skani.log
 echo "performing skani" | tee -a "$DATE_TIME"_Illuminapipeline.log
 #command to perform skani on the 
-skani search assemblies/*.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o 05_skani/skani_results_file.txt -t 24 -n 1 2>> 05_skani/"$DATE_TIME"_skani.log
+skani search assemblies/*.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o 06_skani/skani_results_file.txt -t 24 -n 1 2>> 06_skani/"$DATE_TIME"_skani.log
 conda deactivate 
 
 echo "Finished skANI and starting Quast at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Illuminapipeline.log
@@ -278,14 +275,14 @@ echo "Finished skANI and starting Quast at $(date '+%H:%M')" | tee -a "$DATE_TIM
 conda activate quast
 
 echo "performing quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
-for f in assemblies/*.fna; do quast.py "$f" -o 06_quast/"$f";done 
+for f in assemblies/*.fna; do quast.py "$f" -o 07_quast/"$f";done 
 
 # Create a file to store the QUAST summary table
 echo "making a summary of quast data" | tee -a "$DATE_TIME"_Illuminapipeline.log
-touch 06_quast/quast_summary_table.txt
+touch 07_quast/quast_summary_table.txt
 
 # Add the header to the summary table
-echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> 06_quast/quast_summary_table.txt
+echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> 07_quast/quast_summary_table.txt
 
 # Initialize a counter
 counter=1
@@ -296,7 +293,7 @@ for file in $(find -type f -name "transposed_report.tsv"); do
     echo "Processing file: $counter"
 
     # Add the content of each file to the summary table (excluding the header)
-    tail -n +2 "$file" >> 06_quast/quast_summary_table.txt
+    tail -n +2 "$file" >> 07_quast/quast_summary_table.txt
 
     # Increment the counter
     counter=$((counter+1))
@@ -310,26 +307,26 @@ skani_quast_to_xlsx.py "$DIR"/"$OUT"/ 2>> "$DATE_TIME"_Illuminapipeline.log
 
 #part for beeswarm visualisation of assemblies 
 echo "making beeswarm visualisation of assemblies" | tee -a "$DATE_TIME"_Illuminapipeline.log
-beeswarm_vis_assemblies.R "$DIR/$OUT/06_quast/quast_summary_table.txt" 2>> "$DATE_TIME"_Illuminapipeline.log
+beeswarm_vis_assemblies.R "$DIR/$OUT/07_quast/quast_summary_table.txt" 2>> "$DATE_TIME"_Illuminapipeline.log
 
 echo "Finished Quast and starting Busco at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Illuminapipeline.log
 
 #part for moving the results in the right directory
-mv skANI_Quast_output.xlsx 05_skani/
-mv beeswarm_vis_assemblies.png 06_quast/
+mv skANI_Quast_output.xlsx 06_skani/
+mv beeswarm_vis_assemblies.png 07_quast/
 
 #Busco part
 conda activate busco
 
 echo "performing busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
-for sample in $(ls assemblies/*.fna | awk 'BEGIN{FS=".fna"}{print $1}'); do busco -i "$sample".fna -o 07_busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
+for sample in $(ls assemblies/*.fna | awk 'BEGIN{FS=".fna"}{print $1}'); do busco -i "$sample".fna -o 08_busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
 
 #extra busco part
 #PLOT SUMMARY of busco
 mkdir -p busco_summaries
 echo "making summary busco" | tee -a "$DATE_TIME"_Illuminapipeline.log
 
-cp 07_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
+cp 08_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
 cd busco_summaries/ 
 #to generate a summary plot in PNG
 #generate_plot.py -wd .

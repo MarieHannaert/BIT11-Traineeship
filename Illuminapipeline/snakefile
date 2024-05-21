@@ -24,7 +24,8 @@ rule all:
         expand("results/04_fastp/{names}_1.fq.gz", names=sample_names),
         expand("results/04_fastp/{names}_2.fq.gz", names=sample_names),
         expand("results/04_fastp/{names}_fastp.html", names=sample_names),
-        expand("results/04_fastp/{names}_fastp.json", names=sample_names)
+        expand("results/04_fastp/{names}_fastp.json", names=sample_names),
+        expand("results/05_shovill/{names}/", names=sample_names)
 
 rule fastqc: 
     input:
@@ -102,4 +103,21 @@ rule Fastp:
     shell:
         """
         fastp {params.extra} -i {input.first} -I {input.second} -o {output.first} -O {output.second} -h {output.html} -j {output.json} --detect_adapter_for_pe 2>> {log}
+        """
+
+rule shovill:
+    input:
+        first = "results/04_fastp/{names}_1.fq.gz",
+        second = "results/04_fastp/{names}_2.fq.gz"
+    output: 
+        result = directory("results/05_shovill/{names}/")
+    params:
+        extra = "--cpus 16 --ram 16 --minlen 500 --trim"
+    log:
+        "logs/shovill_{names}.log"
+    conda:
+        "envs/shovill.yml"
+    shell:
+        """
+        shovill --R1 {input.first} --R2 {input.second} {params.extra} -outdir {output.result} 2>> {log}
         """

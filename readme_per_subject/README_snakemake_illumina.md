@@ -1957,6 +1957,26 @@ Complete log: .snakemake/log/2024-05-21T100012.011237.snakemake.log
 ````
 It worked, als the directory was made so I think the part can be removed. 
 
-
+### shovill 
+I will added the rule for shovill: 
+````
+rule shovill:
+    input:
+        first = "results/04_fastp/{names}_1.fq.gz",
+        second = "results/04_fastp/{names}_2.fq.gz"
+    output: 
+        result = directory("results/05_shovill/{names}/")
+    params:
+        extra = "--cpus 16 --ram 16 --minlen 500 --trim"
+    log:
+        "logs/shovill_{names}.log"
+    conda:
+        "envs/shovill.yml"
+    shell:
+        """
+        shovill --R1 {input.first} --R2 {input.second} {params.extra} -outdir {output.result} 2>> {log}
+        """
+````
+I runned the snakemake and this part also worked. 
 
 

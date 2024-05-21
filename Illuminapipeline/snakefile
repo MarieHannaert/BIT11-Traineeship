@@ -1,15 +1,11 @@
 import os
 
 CONDITIONS = ["1", "2"]
-DIRS = ["00_fastqc","01_multiqc", "02_kraken2","03_krona"]
 
 # Define directories
-REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
-sample_dir = REFDIR+"data/sampels/"
-result_dir = REFDIR+"results/"
-os.chdir(REFDIR)
+REFDIR = os.getcwd()
+sample_dir = REFDIR+"/data/sampels/"
 
-print(os.getcwd())
 sample_names = []
 sample_list = os.listdir(sample_dir)
 for i in range(len(sample_list)):
@@ -19,17 +15,16 @@ for i in range(len(sample_list)):
         sample_names.append(samples)
         print(sample_names)
 
-for dir in DIRS:
-    if os.path.isdir("results/"+dir) == False:
-        os.mkdir("results/"+dir)
-
 rule all:
     input:
         expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS),
         "results/01_multiqc/multiqc_report.html",
         expand("results/02_kraken2/{names}_{con}_kraken2.report", names=sample_names, con = CONDITIONS),
-        expand("results/03_krona/{names}_{con}_krona.html", names=sample_names, con = CONDITIONS)
-
+        expand("results/03_krona/{names}_{con}_krona.html", names=sample_names, con = CONDITIONS),
+        expand("results/04_fastp/{names}_1.fq.gz", names=sample_names),
+        expand("results/04_fastp/{names}_2.fq.gz", names=sample_names),
+        expand("results/04_fastp/{names}_fastp.html", names=sample_names),
+        expand("results/04_fastp/{names}_fastp.json", names=sample_names)
 
 rule fastqc: 
     input:
@@ -89,4 +84,22 @@ rule Krona:
     shell:
         """
         ktImportTaxonomy {params.extra} -o {output} {input} 2>> {log}
+        """
+
+rule Fastp:
+    input:
+        first = "data/sampels/{names}_1.fq.gz",
+        second = "data/sampels/{names}_2.fq.gz"
+    output:
+        first = "results/04_fastp/{names}_1.fq.gz",
+        second = "results/04_fastp/{names}_2.fq.gz",
+        html = "results/04_fastp/{names}_fastp.html",
+        json = "results/04_fastp/{names}_fastp.json"
+    params:
+        extra="-w 32"
+    log:
+        "logs/fastp_{names}.log"
+    shell:
+        """
+        fastp {params.extra} -i {input.first} -I {input.second} -o {output.first} -O {output.second} -h {output.html} -j {output.json} --detect_adapter_for_pe 2>> {log}
         """

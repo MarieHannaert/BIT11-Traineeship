@@ -1802,4 +1802,161 @@ Finished job 0.
 Complete log: .snakemake/log/2024-05-17T164755.516751.snakemake.log
 ````
 So these steps also worked. 
+## Feedback 
+I got some feedback on my snakefile on the following part: 
+````
+import os
+
+CONDITIONS = ["1", "2"]
+DIRS = ["00_fastqc","01_multiqc", "02_kraken2","03_krona"]
+
+# Define directories
+REFDIR = "/home/genomics/mhannaert/snakemake/Illuminapipeline/"
+sample_dir = REFDIR+"data/sampels/"
+result_dir = REFDIR+"results/"
+os.chdir(REFDIR)
+
+print(os.getcwd())
+sample_names = []
+sample_list = os.listdir(sample_dir)
+for i in range(len(sample_list)):
+    sample = sample_list[i]
+    if sample.endswith("_1.fq.gz"):
+        samples = sample.split("_1.fq")[0]
+        sample_names.append(samples)
+        print(sample_names)
+
+for dir in DIRS:
+    if os.path.isdir("results/"+dir) == False:
+        os.mkdir("results/"+dir)
+````
+The "REFDIR" was not a great idea, because a snakemake must be shareble so the hard coding the directory must be changed to something more for everybody. 
+My supervisor said it would be a good idea to change it to "." for the current working directory of use the "os.getcwd(). 
+Also he said that the result dir doesn't need to be made before, and that when it is defined in the rule all it will be made so that my steps are not necessary, so I changed it to the following: 
+````
+import os
+
+CONDITIONS = ["1", "2"]
+#DIRS = ["00_fastqc","01_multiqc", "02_kraken2","03_krona"]
+
+# Define directories
+REFDIR = os.getcwd()
+sample_dir = REFDIR+"data/sampels/"
+result_dir = REFDIR+"results/"
+
+sample_names = []
+sample_list = os.listdir(sample_dir)
+for i in range(len(sample_list)):
+    sample = sample_list[i]
+    if sample.endswith("_1.fq.gz"):
+        samples = sample.split("_1.fq")[0]
+        sample_names.append(samples)
+        print(sample_names)
+
+#for dir in DIRS:
+#    if os.path.isdir("results/"+dir) == False:
+#        os.mkdir("results/"+dir)
+````
+I changed it to os.getcwd() and I outcommanded the directories, because I will first check if it works with the following steps. If it works I will remove the part. 
+
+## Next steps 
+after the last steps I will add the following steps for the pipeline: fastp, shovill, skani, quast, busco 
 ### fastp 
+I added the following parts : 
+````
+rule all:
+    input:
+        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS),
+        "results/01_multiqc/multiqc_report.html",
+        expand("results/02_kraken2/{names}_{con}_kraken2.report", names=sample_names, con = CONDITIONS),
+        expand("results/03_krona/{names}_{con}_krona.html", names=sample_names, con = CONDITIONS),
+        expand("results/04_fastp/{names}_1.fq.gz", names=sample_names),
+        expand("results/04_fastp/{names}_2.fq.gz", names=sample_names),
+        expand("results/04_fastp/{names}_fastp.html", names=sample_names),
+        expand("results/04_fastp/{names}_fastp.json", names=sample_names)
+
+rule Fastp:
+    input:
+        first = "data/sampels/{names}_1.fq.gz",
+        second = "data/sampels/{names}_2.fq.gz"
+    output:
+        first = "results/04_fastp/{names}_1.fq.gz",
+        second = "results/04_fastp/{names}_2.fq.gz",
+        html = "results/04_fastp/{names}_fastp.html",
+        json = "results/04_fastp/{names}_fastp.json"
+    params:
+        extra="-w 32"
+    log:
+        "logs/fastp_{names}.log"
+    shell:
+        """
+        fastp {params.extra} -i {input.first} -I {input.second} -o {output.first} -O {output.second} -h {output.html} -j {output.json} --detect_adapter_for_pe 2>> {log}
+        """
+````
+I runned the snakemake: 
+````
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job      count
+-----  -------
+Fastp        2
+all          1
+total        3
+
+Select jobs to execute...
+Execute 2 jobs...
+
+[Tue May 21 10:00:14 2024]
+localrule Fastp:
+    input: data/sampels/070_001_240321_001_0356_099_01_4691_1.fq.gz, data/sampels/070_001_240321_001_0356_099_01_4691_2.fq.gz
+    output: results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.html, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.json
+    log: logs/fastp_070_001_240321_001_0356_099_01_4691.log
+    jobid: 15
+    reason: Missing output files: results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.json, results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.html
+    wildcards: names=070_001_240321_001_0356_099_01_4691
+    resources: tmpdir=/tmp
+
+
+[Tue May 21 10:00:14 2024]
+localrule Fastp:
+    input: data/sampels/070_001_240321_001_0355_099_01_4691_1.fq.gz, data/sampels/070_001_240321_001_0355_099_01_4691_2.fq.gz
+    output: results/04_fastp/070_001_240321_001_0355_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.html, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.json
+    log: logs/fastp_070_001_240321_001_0355_099_01_4691.log
+    jobid: 14
+    reason: Missing output files: results/04_fastp/070_001_240321_001_0355_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.json, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.html
+    wildcards: names=070_001_240321_001_0355_099_01_4691
+    resources: tmpdir=/tmp
+
+[Tue May 21 10:00:51 2024]
+Finished job 15.
+1 of 3 steps (33%) done
+[Tue May 21 10:01:00 2024]
+Finished job 14.
+2 of 3 steps (67%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Tue May 21 10:01:00 2024]
+localrule all:
+    input: results/00_fastqc/070_001_240321_001_0355_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0355_099_01_4691_2_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_1_fastqc, results/00_fastqc/070_001_240321_001_0356_099_01_4691_2_fastqc, results/01_multiqc/multiqc_report.html, results/02_kraken2/070_001_240321_001_0355_099_01_4691_1_kraken2.report, results/02_kraken2/070_001_240321_001_0355_099_01_4691_2_kraken2.report, results/02_kraken2/070_001_240321_001_0356_099_01_4691_1_kraken2.report, results/02_kraken2/070_001_240321_001_0356_099_01_4691_2_kraken2.report, results/03_krona/070_001_240321_001_0355_099_01_4691_1_krona.html, results/03_krona/070_001_240321_001_0355_099_01_4691_2_krona.html, results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html, results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html, results/04_fastp/070_001_240321_001_0355_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.html, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.html, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.json, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.json
+    jobid: 0
+    reason: Input files updated by another job: results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.json, results/04_fastp/070_001_240321_001_0355_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.html, results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.html, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.json
+    resources: tmpdir=/tmp
+
+[Tue May 21 10:01:00 2024]
+Finished job 0.
+3 of 3 steps (100%) done
+Complete log: .snakemake/log/2024-05-21T100012.011237.snakemake.log
+````
+It worked, als the directory was made so I think the part can be removed. 
+
+
+
+

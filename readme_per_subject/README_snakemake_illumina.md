@@ -2194,4 +2194,147 @@ rule beeswarm:
 ````
 This worked.
 ### busco
+````
+rule busco:
+    input: 
+        "results/assemblies/{names}.fna"
+    output:
+        directory("results/08_busco/{names}")
+    params:
+        extra= "-m genome --auto-lineage-prok -c 32"
+    log: 
+        "logs/busco_{names}.log"
+    conda:
+        "envs/busco.yaml"
+    shell:
+        """
+        busco -i {input} -o {output} {params.extra}
+        """
+````
+it worked
 ### busco visualisatie 
+````
+rule buscosummary:
+    input:
+        "results/08_busco/"
+    output:
+        directory("results/busco_summary")
+    conda:
+        "envs/busco.yaml"
+    shell:
+        """
+        mkdir -p {output}
+        cp {input}*/*/short_summary.specific.burkholderiales_odb10.*.txt {output}
+        cd {output}
+        for i in $(seq 1 15 $(ls -1 | wc -l)); do
+            echo "Verwerking van bestanden $i tot $((i+14))"
+            mkdir -p part_"$i-$((i+14))"
+            ls -1 | tail -n +$i | head -15 | while read file; do
+                echo "Verwerking van bestand: $file"
+                mv "$file" part_"$i-$((i+14))"
+            done
+            generate_plot.py -wd part_"$i-$((i+14))"
+        done
+        cd ../..
+        rm -dr busco_downloads
+````
+I got the following error: 
+mv: cannot move 'part_1-15' to a subdirectory of itself, 'part_1-15/part_1-15'mv: cannot move 'part_1-15' to a subdirectory of itself, 'part_1-15/part_1-15'
+
+So I needed to change that part, a solution that was presented by blackbox AI was the following: 
+To fix this error, you can modify the shell script to exclude the part_1-15 directory from the list of files to be moved. One way to do this is by using the find command instead of ls -1
+
+So I changed it to the following part: 
+````
+rule buscosummary:
+    input:
+        "results/08_busco/"
+    output:
+        directory("results/busco_summary")
+    conda:
+        "envs/busco.yaml"
+    shell:
+        """
+        mkdir -p {output}
+        cp {input}*/*/short_summary.specific.burkholderiales_odb10.*.txt {output}
+        cd {output}
+        for i in $(seq 1 15 $(ls -1 | wc -l)); do
+            echo "Verwerking van bestanden $i tot $((i+14))"
+            mkdir -p part_"$i-$((i+14))"
+            find . -maxdepth 1 -type f | tail -n +$i | head -15 | while read file; do
+                echo "Verwerking van bestand: $file"
+                mv "$file" part_"$i-$((i+14))"
+            done
+            generate_plot.py -wd part_"$i-$((i+14))"
+        done
+        cd ../..
+        rm -dr busco_downloads
+        """
+````
+
+This worked, so I think the first try of the snakemake pipeline is ready. 
+
+## first big test
+I will remove all the outputs now and run it one more time completely to see if all the steps are compatible. 
+I also think with the pipeline I now have I can remove the Snakefile_org now. 
+I also don't use the config file in my Snakemake pipeline SO I also will remove that one. 
+
+I also already have a question for when this work, I want to add to remove the fasp files, because after shovill these aren't needed anymore, the same for the kraken2 files, but is it possible because I needed them to be there for other steps? 
+
+but first the try run: 
+first I will do the run without outputs that are made with the following command: 
+````
+snakemake -np 
+````
+I got the following error: 
+````
+MissingInputException in rule multiqc in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 52:
+Missing input files for rule multiqc:
+    output: results/01_multiqc/multiqc_report.html, results/01_multiqc
+    affected files:
+        results/00_fastqc
+````
+I forgot in the beginning to remove the expand from the fastqc rule. 
+There is like a bigger problem with the multiqc rule:
+````
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+Building DAG of jobs...
+MissingInputException in rule multiqc in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 52:
+Missing input files for rule multiqc:
+    output: results/01_multiqc, results/01_multiqc/multiqc_report.html
+    affected files:
+        results/00_fastqc
+````
+I outcommanded the multiqc part so that I could check the rest but there are again multiple errors: 
+````
+/home/genomics/mhannaert/snakemake/Illuminapipeline
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+Building DAG of jobs...
+MissingInputException in rule Fastp in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 96:
+Missing input files for rule Fastp:
+    output: results/04_fastp/070_001_240321_001_0355_099_01_4691/contigs.fa_1.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691/contigs.fa_2.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691/contigs.fa_fastp.html, results/04_fastp/070_001_240321_001_0355_099_01_4691/contigs.fa_fastp.json
+    wildcards: names=070_001_240321_001_0355_099_01_4691/contigs.fa
+    affected files:
+        data/samples/070_001_240321_001_0355_099_01_4691/contigs.fa_2.fq.gz
+        data/samples/070_001_240321_001_0355_099_01_4691/contigs.fa_1.fq.gz
+````
+I changed a lot of things, 
+but I still got the following error:
+````
+Building DAG of jobs...
+MissingInputException in rule skani in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 139:
+Missing input files for rule skani:
+    output: results/06_skani/skani_results_file.txt
+    affected files:
+        results/assemblies
+````
+The error is still with the input diectories, when it is a diretory as input it gives errors. 
+
+I send a message to my supervisor, the solution was very simple and I already had done that solution in the beginning with multiqc. 
+
+I needed to use the expand funtion in the input
+you can see the changes I made to the snake file under commit with the name, **solutions for errors first test**
+
+now it's running and it looks like its working 

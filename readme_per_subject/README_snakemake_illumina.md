@@ -1979,4 +1979,140 @@ rule shovill:
 ````
 I runned the snakemake and this part also worked. 
 
+### rule for collecting contig.fa files 
+The directory **assemblies/** must be made to collect the contigs.fa files. this is needed for the following steps. 
+I will collect the files and also rename them because otherwise you won't know which file it is in later steps. 
+````
+rule contigs:
+    input:
+        "results/05_shovill/{names}/contigs.fa"
+    output:
+        "results/assemblies/{names}.fna"
+    shell:
+        """
+        cp {input} {output}
+        """
+````
+This worked. 
+
+### Skani
+This is what I added:
+````
+rule skani:
+    input:
+        "results/assemblies/{names}.fna"
+    output:
+        "06_skani/skani_results_file.txt"
+    params:
+        extra = "-t 24 -n 1"
+    log:
+        "logs/skani_{names}.log"
+    conda:
+       "envs/skani.yml" 
+    shell:
+        """
+        skani search {input} -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o {output} {params.extra} 2>> {log}
+        """
+````
+I runned snakemake and got the following error: 
+````
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+Building DAG of jobs...
+WildcardError in rule skani in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 137:
+Wildcards in input files cannot be determined from output files: (rule skani, line 291, /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile)
+'names'
+````
+I removed out of the input part the {names part.}, 
+This was also not the solution because I got the following error: 
+````
+['070_001_240321_001_0355_099_01_4691']
+['070_001_240321_001_0355_099_01_4691', '070_001_240321_001_0356_099_01_4691']
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Creating conda environment envs/skani.yml...
+Downloading and installing remote packages.
+Environment for /home/genomics/mhannaert/snakemake/Illuminapipeline/envs/skani.yml created (location: .snakemake/conda/f45ccea93d9beb725ff7f59e3308f90f_)
+Retrieving input from storage.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Job stats:
+job      count
+-----  -------
+all          1
+skani        1
+total        2
+
+Select jobs to execute...
+Execute 1 jobs...
+
+[Tue May 21 11:40:54 2024]
+localrule skani:
+    input: results/assemblies
+    output: results/06_skani/skani_results_file.txt
+    log: logs/skani.log
+    jobid: 20
+    reason: Missing output files: results/06_skani/skani_results_file.txt
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/f45ccea93d9beb725ff7f59e3308f90f_
+[Tue May 21 11:40:54 2024]
+Error in rule skani:
+    jobid: 20
+    input: results/assemblies
+    output: results/06_skani/skani_results_file.txt
+    log: logs/skani.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/f45ccea93d9beb725ff7f59e3308f90f_
+    shell:
+        
+        skani search results/assemblies -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o results/06_skani/skani_results_file.txt -t 24 -n 1 2>> logs/skani.log
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-21T114028.388209.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+````
+I went looking in to the log file of skani in **/home/genomics/mhannaert/snakemake/Illuminapipeline/logs/skani.log**
+And there stood the following: /usr/bin/bash: line 2: skani: command not found
+
+this means there is something wrong, maybe I don't have the conda env correctly or I need to do something first like with krona before. 
+
+I started with changing the envs for conda maybe I made  typo. 
+I checked and it was not a typo, so I went to the github page of skani to look at the installation of the tool. 
+Here there stood nothing special about skani installation or thing you need to do before you start. 
+
+Because I could not find why the skani command won't work I asked my supervisor, Oke so he checked for me I when I have exported my env I made a mistake because I exported my base env instead, and thats indeed the reason why skani wasn't recoginised. 
+
+so I changed it ( and all the rest of my env , because these needed to be .yaml and not .Yml) and I tried again. 
+
+It didn't gave the output I wanted, so I changed it back the input to {names}.fna
+tested again: 
+````
+WildcardError in rule skani in file /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile, line 137:
+Wildcards in input files cannot be determined from output files: (rule skani, line 291, /home/genomics/mhannaert/snakemake/Illuminapipeline/Snakefile)
+'names'
+````
+I solved it in the following way: 
+````
+rule skani:
+    input:
+        "results/assemblies"
+    output:
+        result = "results/06_skani/skani_results_file.txt"
+    params:
+        extra = "-t 24 -n 1"
+    log:
+        "logs/skani.log"
+    conda:
+       "envs/skani.yaml"
+    shell:
+        """
+        skani search {input}/*.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o {output} {params.extra} 2>> {log}
+        """
+````
+This worked. 
 

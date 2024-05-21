@@ -25,7 +25,9 @@ rule all:
         expand("results/04_fastp/{names}_2.fq.gz", names=sample_names),
         expand("results/04_fastp/{names}_fastp.html", names=sample_names),
         expand("results/04_fastp/{names}_fastp.json", names=sample_names),
-        expand("results/05_shovill/{names}/", names=sample_names)
+        expand("results/05_shovill/{names}/", names=sample_names),
+        expand("results/assemblies/{names}.fna", names=sample_names),
+        "results/06_skani/skani_results_file.txt"
 
 rule fastqc: 
     input:
@@ -51,7 +53,7 @@ rule multiqc:
     log:
         "logs/multiqc.log"
     conda:
-        "envs/multiqc.yml"
+        "envs/multiqc.yaml"
     shell:
         """
         multiqc {input[1]} -o {output.result} 2>> {log}
@@ -81,7 +83,7 @@ rule Krona:
     log:
         "logs/Krona_{names}_{con}.log"
     conda:
-        "envs/krona.yml"
+        "envs/krona.yaml"
     shell:
         """
         ktImportTaxonomy {params.extra} -o {output} {input} 2>> {log}
@@ -116,8 +118,34 @@ rule shovill:
     log:
         "logs/shovill_{names}.log"
     conda:
-        "envs/shovill.yml"
+        "envs/shovill.yaml"
     shell:
         """
         shovill --R1 {input.first} --R2 {input.second} {params.extra} -outdir {output.result} 2>> {log}
+        """
+
+rule contigs:
+    input:
+        "results/05_shovill/{names}/contigs.fa"
+    output:
+        "results/assemblies/{names}.fna"
+    shell:
+        """
+        cp {input} {output}
+        """
+
+rule skani:
+    input:
+        "results/assemblies"
+    output:
+        result = "results/06_skani/skani_results_file.txt"
+    params:
+        extra = "-t 24 -n 1"
+    log:
+        "logs/skani.log"
+    conda:
+       "envs/skani.yaml"
+    shell:
+        """
+        skani search {input}/*.fna -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o {output} {params.extra} 2>> {log}
         """

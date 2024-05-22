@@ -2338,3 +2338,147 @@ I needed to use the expand funtion in the input
 you can see the changes I made to the snake file under commit with the name, **solutions for errors first test**
 
 now it's running and it looks like its working 
+
+It didn't work but that error is for tommorow. 
+
+## Further solving errors
+I changed two times the input, like I put in input, so that the rule won't start before an other rule is done, but I hard coded the directory in the command because these directories will be made during the proces, thus this can be hard coded. 
+
+It is now running, 
+error with shovill, the following part can be found in the log files:
+````
+Error in rule shovill:
+    jobid: 17
+    input: results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz
+    output: results/05_shovill/070_001_240321_001_0356_099_01_4691/contigs.fa, results/05_shovill/070_001_240321_001_0356_099_01_4691
+    log: logs/shovill_070_001_240321_001_0356_099_01_4691.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/e3a86a96aaf3a3c87981bc7f5086614f_
+    shell:
+        
+        shovill --R1 results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz --R2 results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz --cpus 16 --ram 16 --minlen 500 --trim -outdir results/05_shovill/070_001_240321_001_0356_099_01_4691 2>> logs/shovill_070_001_240321_001_0356_099_01_4691.log
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+
+[shovill] Folder 'results/05_shovill/070_001_240321_001_0356_099_01_4691' already exists. Try using --force
+````
+
+For a solution I added the "expand" to the shovill input so that it has to wait till fastp is ready, so that maybe the folder won't be made multiple times. 
+
+I rerund: 
+````
+Error in rule shovill:
+    jobid: 16
+    input: results/04_fastp/070_001_240321_001_0355_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz
+    output: results/05_shovill/070_001_240321_001_0355_099_01_4691/contigs.fa, results/05_shovill/070_001_240321_001_0355_099_01_4691
+    log: logs/shovill_070_001_240321_001_0355_099_01_4691.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/e3a86a96aaf3a3c87981bc7f5086614f_
+    shell:
+        
+        shovill --R1 results/04_fastp/070_001_240321_001_0355_099_01_4691_1.fq.gz results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz --R2 results/04_fastp/070_001_240321_001_0355_099_01_4691_2.fq.gz results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz --cpus 16 --ram 16 --minlen 500 --trim -outdir results/05_shovill/070_001_240321_001_0355_099_01_4691 2>> logs/shovill_070_001_240321_001_0355_099_01_4691.log
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Error in rule shovill:
+    jobid: 17
+    input: results/04_fastp/070_001_240321_001_0355_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz, results/04_fastp/070_001_240321_001_0355_099_01_4691_2.fq.gz, results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz
+    output: results/05_shovill/070_001_240321_001_0356_099_01_4691/contigs.fa, results/05_shovill/070_001_240321_001_0356_099_01_4691
+    log: logs/shovill_070_001_240321_001_0356_099_01_4691.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/e3a86a96aaf3a3c87981bc7f5086614f_
+    shell:
+        
+        shovill --R1 results/04_fastp/070_001_240321_001_0355_099_01_4691_1.fq.gz results/04_fastp/070_001_240321_001_0356_099_01_4691_1.fq.gz --R2 results/04_fastp/070_001_240321_001_0355_099_01_4691_2.fq.gz results/04_fastp/070_001_240321_001_0356_099_01_4691_2.fq.gz --cpus 16 --ram 16 --minlen 500 --trim -outdir results/05_shovill/070_001_240321_001_0356_099_01_4691 2>> logs/shovill_070_001_240321_001_0356_099_01_4691.log
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+[shovill] Folder 'results/05_shovill/070_001_240321_001_0355_099_01_4691' already exists. Try using --force
+````
+
+I will try by adding the --force option, the result after running:
+this option worked but I found a stupid error from me, at line 136 I do cd input, but input here is a file ..., so that won't work. I stopped the running and changed that. 
+
+
+now  I will run again: 
+````
+[Wed May 22 11:29:18 2024]
+Finished job 16.
+17 of 29 steps (59%) done
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-22T105139.782472.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+````
+The problem is in the rule about contigs 
+So again will take a look at that part`, with the help of blackbox AI I made the following solution: 
+````
+rule contigs:
+    input:
+        contigs_fa = "results/05_shovill/{names}/contigs.fa"
+    output:
+        assembly_fna = "results/assemblies/{names}.fna"
+    shell:
+        """
+        cp {input.contigs_fa} {output.assembly_fna}
+        """
+````
+when I runned it, starting from shovill, all teh following steps till busco part, there I got the following error: 
+````
+[Wed May 22 11:54:47 2024]
+Finished job 27.
+9 of 12 steps (75%) done
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-22T115223.848693.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+
+
+Error in rule busco:
+    jobid: 28
+    input: results/assemblies/070_001_240321_001_0356_099_01_4691.fna
+    output: results/08_busco/070_001_240321_001_0356_099_01_4691
+    log: logs/busco_070_001_240321_001_0356_099_01_4691.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_
+    shell:
+
+        busco -i results/assemblies/070_001_240321_001_0356_099_01_4691.fna -o results/08_busco/070_001_240321_001_0356_099_01_4691 -m genome --auto-lineage-prok -c 32 2>> logs/busco_070_001_240321_001_0356_099_01_4691.log
+
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+buscolog file: 
+2024-05-22 11:54:24 CRITICAL:	Unhandled exception occurred:
+Traceback (most recent call last):
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/site-packages/busco/BuscoRunner.py", line 120, in run
+    self.get_lineage()
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/site-packages/busco/BuscoRunner.py", line 74, in get_lineage
+    self.config.load_dataset(self.lineage_dataset)
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/site-packages/busco/BuscoConfig.py", line 227, in load_dataset
+    self.download_lineage_file(
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/site-packages/busco/BuscoConfig.py", line 221, in download_lineage_file
+    local_lineage_filepath = self.downloader.get(lineage, "lineages")
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/site-packages/busco/BuscoDownloadManager.py", line 236, in get
+    local_filepath = self._decompress_file(
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/site-packages/busco/BuscoLogger.py", line 62, in wrapped_func
+    self.retval = func(*args, **kwargs)
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/site-packages/busco/BuscoDownloadManager.py", line 335, in _decompress_file
+    for line in compressed_file:
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/gzip.py", line 398, in readline
+    return self._buffer.readline(size)
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/_compression.py", line 68, in readinto
+    data = self.read(len(byte_view))
+  File "/home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_/lib/python3.9/gzip.py", line 506, in read
+    raise EOFError("Compressed file ended before the "
+EOFError: Compressed file ended before the end-of-stream marker was reached
+
+
+2024-05-22 11:54:24 ERROR:	Compressed file ended before the end-of-stream marker was reached
+2024-05-22 11:54:24 ERROR:	BUSCO analysis failed!
+2024-05-22 11:54:24 ERROR:	Check the logs, read the user guide (https://busco.ezlab.org/busco_userguide.html), and check the BUSCO issue board on https://gitlab.com/ezlab/busco/issues
+````
+
+I think the most inportant part is the following: "Compressed file ended before the end-of-stream marker was reached"
+
+but I don't know how I can fix that
+
+I will just run again to see, 

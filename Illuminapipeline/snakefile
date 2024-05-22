@@ -46,8 +46,7 @@ rule fastqc:
 
 rule multiqc:
     input:
-        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS),
-        "results/00_fastqc/"
+        expand("results/00_fastqc/{names}_{con}_fastqc/", names=sample_names, con = CONDITIONS)
     output:
         "results/01_multiqc/multiqc_report.html",
         result = directory("results/01_multiqc/")  
@@ -57,7 +56,7 @@ rule multiqc:
         "envs/multiqc.yaml"
     shell:
         """
-        multiqc {input[1]} -o {output.result} 2>> {log}
+        multiqc results/00_fastqc/ -o {output.result} 2>> {log}
         """
 
 rule Kraken2:
@@ -124,19 +123,17 @@ rule shovill:
         "envs/shovill.yaml"
     shell:
         """
-        shovill --R1 {input.first} --R2 {input.second} {params.extra} -outdir {output.result} 2>> {log}
+        shovill --R1 {input.first} --R2 {input.second} {params.extra} -outdir {output.result} --force 2>> {log}
         """
 
 rule contigs:
     input:
-        "results/05_shovill/{names}/contigs.fa"
+        contigs_fa = "results/05_shovill/{names}/contigs.fa"
     output:
-        "results/assemblies/{names}.fna"
+        assembly_fna = "results/assemblies/{names}.fna"
     shell:
         """
-        cd {input}
-        for d in $(ls -d *); do cp "$d"/contigs.fa ../assemblies/"$d".fna; done
-        cd ../..
+        cp {input.contigs_fa} {output.assembly_fna}
         """
 
 rule skani:
@@ -197,13 +194,12 @@ rule summarytable:
 rule xlsx:
     input:
         "results/07_quast/quast_summary_table.txt",
-        "results/06_skani/skani_results_file.txt",
-        result = "results/"
+        "results/06_skani/skani_results_file.txt"
     output:
         "results/06_skani/skANI_Quast_output.xlsx"
     shell:
         """
-          skani_quast_to_xlsx.py {input.result}
+          skani_quast_to_xlsx.py results/
           mv results/skANI_Quast_output.xlsx results/06_skani/
         """
 

@@ -1,0 +1,12 @@
+name: skani
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - _libgcc_mutex=0.1=conda_forge
+  - _openmp_mutex=4.5=2_gnu
+  - libgcc-ng=13.2.0=h807b86a_5
+  - libgomp=13.2.0=h807b86a_5
+  - libstdcxx-ng=13.2.0=h7e041cc_5
+  - skani=0.2.1=h4ac6f70_0
+prefix: /opt/miniforge3/envs/skani

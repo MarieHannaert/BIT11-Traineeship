@@ -1,0 +1,28 @@
+name: krona
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - _libgcc_mutex=0.1=conda_forge
+  - _openmp_mutex=4.5=2_gnu
+  - c-ares=1.11.0=h470a237_1
+  - ca-certificates=2024.2.2=hbcca054_0
+  - curl=7.71.1=he644dc0_8
+  - krb5=1.17.2=h926e7f8_0
+  - krona=2.8.1=pl5321hdfd78af_1
+  - libcurl=7.71.1=hcdd3856_8
+  - libedit=3.1.20191231=he28a2e2_2
+  - libev=4.33=hd590300_2
+  - libgcc-ng=13.2.0=hc881cc4_6
+  - libgomp=13.2.0=hc881cc4_6
+  - libnghttp2=1.41.0=hab1572f_1
+  - libssh2=1.10.0=haa6b8db_3
+  - libstdcxx-ng=13.2.0=h95c4c6d_6
+  - libxcrypt=4.4.36=hd590300_1
+  - libzlib=1.2.13=hd590300_5
+  - ncurses=6.4.20240210=h59595ed_0
+  - openssl=1.1.1w=hd590300_0
+  - perl=5.32.1=7_hd590300_perl5
+  - tk=8.6.13=noxft_h4845f30_101
+  - zlib=1.2.13=hd590300_5
+prefix: /opt/miniforge3/envs/krona

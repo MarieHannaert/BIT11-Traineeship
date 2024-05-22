@@ -240,7 +240,7 @@ rule buscosummary:
     shell:
         """
         mkdir -p {output}
-        cp {input}*/*/short_summary.specific.burkholderiales_odb10.*.txt {output}
+        cp -r {input}/short_summary.specific.burkholderiales_odb10.*.txt {output}
         cd {output}
         for i in $(seq 1 15 $(ls -1 | wc -l)); do
             echo "Verwerking van bestanden $i tot $((i+14))"

@@ -2481,4 +2481,99 @@ I think the most inportant part is the following: "Compressed file ended before 
 
 but I don't know how I can fix that
 
-I will just run again to see, 
+I will just run again to see, only error
+````
+[Wed May 22 12:37:47 2024]
+localrule buscosummary:
+    input: results/08_busco/070_001_240321_001_0355_099_01_4691, results/08_busco/070_001_240321_001_0356_099_01_4691
+    output: results/busco_summary
+    jobid: 26
+    reason: Missing output files: results/busco_summary; Input files updated by another job: results/08_busco/070_001_240321_001_0355_099_01_4691, results/08_busco/070_001_240321_001_0356_099_01_4691; Set of input files has changed since last execution
+    resources: tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/ab3b814a790df8a3227c1437cdffa761_
+cp: -r not specified; omitting directory 'results/08_busco/070_001_240321_001_0355_099_01_4691'
+cp: cannot stat 'results/08_busco/070_001_240321_001_0356_099_01_4691*/*/short_summary.specific.burkholderiales_odb10.*.txt': No such file or directory
+[Wed May 22 12:37:49 2024]
+Error in rule buscosummary:
+    jobid: 26
+    input: results/08_busco/070_001_240321_001_0355_099_01_4691, results/08_busco/070_001_240321_001_0356_099_01_4691
+    output: results/busco_summary
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_
+    shell:
+
+        mkdir -p results/busco_summary
+        cp results/08_busco/070_001_240321_001_0355_099_01_4691 results/08_busco/070_001_240321_001_0356_099_01_4691*/*/short_summary.specific.burkholderiales_odb10.*.txt results/busco_summary
+        cd results/busco_summary
+        for i in $(seq 1 15 $(ls -1 | wc -l)); do
+            echo "Verwerking van bestanden $i tot $((i+14))"
+            mkdir -p part_"$i-$((i+14))"
+            find . -maxdepth 1 -type f | tail -n +$i | head -15 | while read file; do
+                echo "Verwerking van bestand: $file"
+                mv "$file" part_"$i-$((i+14))"
+            done
+            generate_plot.py -wd part_"$i-$((i+14))"
+        done
+        cd ../..
+        rm -dr busco_downloads
+
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job buscosummary since they might be corrupted:
+results/busco_summary
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-22T120242.210010.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+````
+so busco rule is fine, but I made some mistakes in the busco summary, so I fixes these: 
+````
+rule buscosummary:
+    input:
+        expand("results/08_busco/{names}", names=sample_names)
+    output:
+        directory("results/busco_summary")
+    conda:
+        "envs/busco.yaml"
+    shell:
+        """
+        mkdir -p {output}
+        cp -r {input}/short_summary.specific.burkholderiales_odb10.*.txt {output}
+        cd {output}
+        for i in $(seq 1 15 $(ls -1 | wc -l)); do
+            echo "Verwerking van bestanden $i tot $((i+14))"
+            mkdir -p part_"$i-$((i+14))"
+            find . -maxdepth 1 -type f | tail -n +$i | head -15 | while read file; do
+                echo "Verwerking van bestand: $file"
+                mv "$file" part_"$i-$((i+14))"
+            done
+            generate_plot.py -wd part_"$i-$((i+14))"
+        done
+        cd ../..
+        rm -dr busco_downloads
+        """
+````
+I fixed the directory name, these looked like it wasn't correct and I added "-r" to the cp command. 
+
+This looked like it worked. 
+So I tested again from 0: 
+````
+[Wed May 22 13:35:46 2024]
+localrule all:
+    input: results/01_multiqc/multiqc_report.html, results/03_krona/070_001_240321_001_0355_099_01_4691_1_krona.html, results/03_krona/070_001_240321_001_0355_099_01_4691_2_krona.html, results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html, results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.html, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.html, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.json, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.json, results/05_shovill/070_001_240321_001_0355_099_01_4691, results/05_shovill/070_001_240321_001_0356_099_01_4691, results/assemblies/070_001_240321_001_0355_099_01_4691.fna, results/assemblies/070_001_240321_001_0356_099_01_4691.fna, results/06_skani/skani_results_file.txt, results/07_quast/quast_summary_table.txt, results/06_skani/skANI_Quast_output.xlsx, results/07_quast/beeswarm_vis_assemblies.png, results/busco_summary
+    jobid: 0
+    reason: Input files updated by another job: results/03_krona/070_001_240321_001_0355_099_01_4691_2_krona.html, results/busco_summary, results/03_krona/070_001_240321_001_0356_099_01_4691_2_krona.html, results/03_krona/070_001_240321_001_0355_099_01_4691_1_krona.html, results/03_krona/070_001_240321_001_0356_099_01_4691_1_krona.html, results/06_skani/skANI_Quast_output.xlsx, results/06_skani/skani_results_file.txt, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.json, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.json, results/07_quast/beeswarm_vis_assemblies.png, results/01_multiqc/multiqc_report.html, results/04_fastp/070_001_240321_001_0355_099_01_4691_fastp.html, results/05_shovill/070_001_240321_001_0355_099_01_4691, results/assemblies/070_001_240321_001_0356_099_01_4691.fna, results/assemblies/070_001_240321_001_0355_099_01_4691.fna, results/07_quast/quast_summary_table.txt, results/04_fastp/070_001_240321_001_0356_099_01_4691_fastp.html, results/05_shovill/070_001_240321_001_0356_099_01_4691
+    resources: tmpdir=/tmp
+
+[Wed May 22 13:35:46 2024]
+Finished job 0.
+29 of 29 steps (100%) done
+Complete log: .snakemake/log/2024-05-22T130031.647688.snakemake.log
+````
+This worked
+## Feedback
+I need to make a script directory because that's needed for if I want to make a gitrepository that's shareble, because everything must be in there. 
+
+Also when it works I need to write a readme, so that everybody know how to install and which steps to take before using it but also which is important and where there is extra focus needed. 
+

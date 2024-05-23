@@ -7,5 +7,16 @@
 DIR=$1
 OUT=$2
 
+#going to the input directory
+cd "$DIR"
+
+#making the output directory 
+mkdir -p "$OUT"
+
 #CSV part
 touch "$OUT"/input_table_hybracter.csv
+
+for sample in $(ls *.fq.gz | awk 'BEGIN{FS=".fq.*"}{print $1}');
+do echo "$sample"_hybrid,"$sample".fq.gz, ,"$sample"_1.fq.gz,"$sample"_2.fq.gz >> "$OUT"/input_table_hybracter.csv;
+done
+

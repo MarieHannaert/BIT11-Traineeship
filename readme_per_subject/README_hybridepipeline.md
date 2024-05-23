@@ -32,3 +32,30 @@ s_aureus_sample1,sample1_long_read.fastq.gz,2500000,sample1_SR_R1.fastq.gz,sampl
 p_aeruginosa_sample2,sample2_long_read.fastq.gz,5500000,sample2_SR_R1.fastq.gz,sample2_SR_R2.fastq.gz
 ````
 
+This is what I made:
+````
+#!/bin/bash
+# This script will perform the complete hybride pipeline so that the pipeline can be perfomed on multiple samples and in one step 
+#This will combine short read data and long read data
+#when this script is completed, it needs to become a snakemake pipeline
+#This script is meant to be performed on the server
+
+DIR=$1
+OUT=$2
+
+#going to the input directory
+cd "$DIR"
+
+#making the output directory 
+mkdir -p "$OUT"
+
+#CSV part
+touch "$OUT"/input_table_hybracter.csv
+
+for sample in $(ls *.fq.gz | awk 'BEGIN{FS=".fq.*"}{print $1}');
+do echo "$sample"_hybrid,"$sample".fq.gz, ,"$sample"_1.fq.gz,"$sample"_2.fq.gz >> "$OUT"/input_table_hybracter.csv;
+done
+````
+The third column is still empty because I don't know what to fill in for max chromosome lengt. 
+I asked my supervisor this and he said this isn't needed, but now I don't know if I need to leave it empty or set something in place. 
+

@@ -200,8 +200,80 @@ done
 This also worked.
 
 ## SkANI
+for this part and the following parts, I will use my code from the previous script, The only thing is that there I made assemblies folder with all the assemblies in. The samples were I need to run skani on is the result of the consensus that was made by Racon. 
 
+I want looking on the skani documentation, and there stood that skani could be runnend on fasta files. so I don't need to change anything. Just define the wright input.
+
+````
+#skANI
+conda activate skani 
+#making a directory and a log file 
+mkdir -p 06_skani 
+touch 06_skani/"$DATE_TIME"_skani.log
+echo "performing skani" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+#command to perform skani on the 
+skani search 05_racon/*_racon.fasta -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o 06_skani/skani_results_file.txt -t 24 -n 1 2>> 06_skani/"$DATE_TIME"_skani.log
+conda deactivate 
+
+echo "Finished skANI and starting Quast at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Illuminapipeline.log
+````
+I again runned it in the command line 
+````
+skani search 05_racon/*_racon.fasta -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o 06_skani/skani_results_file.txt -t 24 -n 1
+````
+It worked in the command line
 ## Quast
-## Quast summary
-## Xlsx
-## Beeswarmvisualisation
+````
+#quast
+conda activate quast
+cd 05_racon/
+echo "performing quast" | tee -a "$DATE_TIME"_Longreadpipeline.log
+for f in *_racon.fasta; do quast.py "$f" -o ../07_quast/"$f";done 
+cd ..
+#quast summary
+# Create a file to store the QUAST summary table
+echo "making a summary of quast data" | tee -a "$DATE_TIME"_Longreadpipeline.log
+touch 07_quast/quast_summary_table.txt
+
+# Add the header to the summary table
+echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> 07_quast/quast_summary_table.txt
+
+# Initialize a counter
+counter=1
+
+# Loop over all the transposed_report.tsv files and read them
+for file in $(find -type f -name "transposed_report.tsv"); do
+    # Show progress
+    echo "Processing file: $counter"
+
+    # Add the content of each file to the summary table (excluding the header)
+    tail -n +2 "$file" >> 07_quast/quast_summary_table.txt
+
+    # Increment the counter
+    counter=$((counter+1))
+done
+
+conda deactivate
+````
+I perfromed this also in the command line: 
+````
+for f in *_racon.fasta; do quast.py "$f" -o ../07_quast/"$f";done
+````
+I did also the following steps for the summary table and everything worked. 
+## Xlsx & Beeswarmvisualisation
+I added this 
+````
+#xlsx
+#part were I make a xlsx file of the skANI output and the Quast output 
+echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Longreadpipeline.log
+skani_quast_to_xlsx.py "$DIR"/"$OUT"/ 2>> "$DATE_TIME"_Longreadpipeline.log
+
+#beeswarmvisualisation
+#part for beeswarm visualisation of assemblies 
+echo "making beeswarm visualisation of assemblies" | tee -a "$DATE_TIME"_Longreadpipeline.log
+beeswarm_vis_assemblies.R "$DIR/$OUT/07_quast/quast_summary_table.txt" 2>> "$DATE_TIME"_Longreadpipeline.log
+
+mv skANI_Quast_output.xlsx 06_skani/
+mv beeswarm_vis_assemblies.png 07_quast/
+````
+## Big first test of the whole script

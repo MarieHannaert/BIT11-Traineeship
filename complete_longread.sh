@@ -127,6 +127,12 @@ conda list | grep minimap2  | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 conda deactivate
 echo "racon version:" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 racon --version | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+conda activate skani 
+conda list | grep skani | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate 
+conda activate quast
+conda list | grep quast | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda deactivate
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 #adding the command to the log file
 echo "the command that was used is:"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
@@ -156,7 +162,6 @@ elif [[ $3 != "gz" ]] && [[ $3 != "bz2" ]]; then
 fi
 echo "File reformatting done and starting nanoplot at $(date '+%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 
-
 #part about nanoplot
 conda activate nanoplot 
 echo "Performing nanoplot" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
@@ -172,6 +177,7 @@ echo "Performing filtlong" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 mkdir -p "$OUT"/02_filtlong 
 for sample in `ls *.fq.gz | awk 'BEGIN{FS=".fq.gz"}{print $1}'`; do filtlong --min_length 1000 --target_bases 540000000 "$sample".fq.gz |  gzip > "$OUT"/02_filtlong/"$sample"_1000bp_100X.fq.gz ; done 2>> "$OUT"/02_filtlong/"$DATE_TIME"_filtlong.log
 conda deactivate 
+echo "filtlong done, starting porechop ABI at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 
 #Porechop ABI
 conda activate porechop_abi
@@ -180,6 +186,8 @@ mkdir -p "$OUT"/03_porechopABI
 pigz -d *.fq.gz
 for sample in `ls *.fq | awk 'BEGIN{FS=".fq"}{print $1}'`; do porechop_abi -abi -t 32 -v 2 -i $sample.fq -o "$OUT"/03_porechopABI/"$sample"_trimmed.fq ; done  | tee "$OUT"/03_porechopABI/"$DATE_TIME"_porechopABI.log
 conda deactivate 
+
+echo "porechop ABI done, starting Flye at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 
 #flye 
 conda activate flye
@@ -199,22 +207,82 @@ done
 
 conda deactivate 
 
+echo "Flye done, starting minimap2 at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 #Racon
 mkdir -p ../05_racon
 #first map genome with minimap2
+echo "Perfomring minimap2" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 conda activate minimap2
 for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
 do minimap2 -t "$4" -x map-ont -secondary=no -m 100 ../04_flye/flye_out_"$sample"/assembly.fasta "$sample"_OUTPUT.fasta | gzip - > ../05_racon/"$sample"_aln.paf.gz;
 done
 conda deactivate 
+
+echo "minimap2 done, starting racon at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 # then run racon
+echo "Performing racon" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
 do racon -u -t "$4" "$sample"_OUTPUT.fasta ../05_racon/"$sample"_aln.paf.gz ../04_flye/flye_out_"$sample"/assembly.fasta > ../05_racon/"$sample"_racon.fasta;
 done
 
+cd ..
 
+echo "Racon done, starting skANI at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 #skANI
+conda activate skani 
+#making a directory and a log file 
+mkdir -p 06_skani 
+touch 06_skani/"$DATE_TIME"_skani.log
+echo "performing skani" | tee -a "$DATE_TIME"_Longreadpipeline.log
+#command to perform skani on the 
+skani search 05_racon/*_racon.fasta -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o 06_skani/skani_results_file.txt -t 24 -n 1 2>> 06_skani/"$DATE_TIME"_skani.log
+conda deactivate 
+
+echo "Finished skANI and starting Quast at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Longreadpipeline.log
+
 #quast
+conda activate quast
+cd 05_racon/
+echo "performing quast" | tee -a "$DATE_TIME"_Longreadpipeline.log
+for f in *_racon.fasta; do quast.py "$f" -o ../07_quast/"$f";done 
+cd ..
 #quast summary
+# Create a file to store the QUAST summary table
+echo "making a summary of quast data" | tee -a "$DATE_TIME"_Longreadpipeline.log
+touch 07_quast/quast_summary_table.txt
+
+# Add the header to the summary table
+echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> 07_quast/quast_summary_table.txt
+
+# Initialize a counter
+counter=1
+
+# Loop over all the transposed_report.tsv files and read them
+for file in $(find -type f -name "transposed_report.tsv"); do
+    # Show progress
+    echo "Processing file: $counter"
+
+    # Add the content of each file to the summary table (excluding the header)
+    tail -n +2 "$file" >> 07_quast/quast_summary_table.txt
+
+    # Increment the counter
+    counter=$((counter+1))
+done
+
+conda deactivate
+
 #xlsx
+#part were I make a xlsx file of the skANI output and the Quast output 
+echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Longreadpipeline.log
+skani_quast_to_xlsx.py "$DIR"/"$OUT"/ 2>> "$DATE_TIME"_Longreadpipeline.log
+
 #beeswarmvisualisation
+#part for beeswarm visualisation of assemblies 
+echo "making beeswarm visualisation of assemblies" | tee -a "$DATE_TIME"_Longreadpipeline.log
+beeswarm_vis_assemblies.R "$DIR/$OUT/07_quast/quast_summary_table.txt" 2>> "$DATE_TIME"_Longreadpipeline.log
+
+mv skANI_Quast_output.xlsx 06_skani/
+mv beeswarm_vis_assemblies.png 07_quast/
+rm -rd ../tmp
+#End of primary analysis
+echo "end of primary analysis for long-reads data at $(date '+%Y/%m/%d_%H:%M')"| tee -a "$DATE_TIME"_Illuminapipeline.log

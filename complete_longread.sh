@@ -122,6 +122,11 @@ conda deactivate
 conda activate flye
 conda list | grep flye | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 conda deactivate
+conda activate minimap2 
+conda list | grep minimap2  | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+conda deactivate
+echo "racon version:" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+racon --version | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 #adding the command to the log file
 echo "the command that was used is:"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
@@ -154,7 +159,7 @@ echo "File reformatting done and starting nanoplot at $(date '+%H:%M')" | tee -a
 
 #part about nanoplot
 conda activate nanoplot 
-echo Performing nanoplot | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "Performing nanoplot" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 mkdir -p "$OUT"/01_nanoplot
 NanoPlot -t 2 --fastq *.fq.gz -o "$OUT"/01_nanoplot --maxlength 40000 --plots --legacy hex dot 2>> "$OUT"/01_nanoplot/"$DATE_TIME"_nanoplot.log
 conda deactivate
@@ -163,14 +168,14 @@ echo "nanoplot done, starting filtlong at $(date '+%H:%M')"| tee -a "$OUT"/"$DAT
 
 #filtlong 
 conda activate filtlong
-echo Performing filtlong | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "Performing filtlong" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 mkdir -p "$OUT"/02_filtlong 
 for sample in `ls *.fq.gz | awk 'BEGIN{FS=".fq.gz"}{print $1}'`; do filtlong --min_length 1000 --target_bases 540000000 "$sample".fq.gz |  gzip > "$OUT"/02_filtlong/"$sample"_1000bp_100X.fq.gz ; done 2>> "$OUT"/02_filtlong/"$DATE_TIME"_filtlong.log
 conda deactivate 
 
 #Porechop ABI
 conda activate porechop_abi
-echo Performing Porechop_ABI | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "Performing Porechop_ABI" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 mkdir -p "$OUT"/03_porechopABI
 pigz -d *.fq.gz
 for sample in `ls *.fq | awk 'BEGIN{FS=".fq"}{print $1}'`; do porechop_abi -abi -t 32 -v 2 -i $sample.fq -o "$OUT"/03_porechopABI/"$sample"_trimmed.fq ; done  | tee "$OUT"/03_porechopABI/"$DATE_TIME"_porechopABI.log
@@ -178,23 +183,36 @@ conda deactivate
 
 #flye 
 conda activate flye
-echo reformatting fq to fast | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "reformatting fq to fast" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 
 for sample in `ls "$OUT"/03_porechopABI/*_trimmed.fq | awk 'BEGIN{FS="_trimmed.fq"}{print $1}'`;
 do cat "$sample"_trimmed.fq | awk '{if(NR%4==1) {printf(">%s\n",substr($0,2));} else if(NR%4==2) print;}' > "$sample"_OUTPUT.fasta;
 done 
 
-echo Performing Flye | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "Performing Flye"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 mkdir -p "$OUT"/04_flye
-cd 03_porechopABI/
+cd "$OUT"/03_porechopABI/
 
 for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
-do flye --asm-coverage 50 --genome-size 5.4g --nano-hq "$sample"_OUTPUT.fasta --out-dir "$OUT"/04_flye/flye_out_"$sample" --threads 32 --iterations 1 --scaffold;
+do flye --asm-coverage 50 --genome-size 5.4g --nano-hq "$sample"_OUTPUT.fasta --out-dir ../04_flye/flye_out_"$sample" --threads 32 --iterations 1 --scaffold;
 done 
-cd ..
+
 conda deactivate 
 
 #Racon
+mkdir -p ../05_racon
+#first map genome with minimap2
+conda activate minimap2
+for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
+do minimap2 -t "$4" -x map-ont -secondary=no -m 100 ../04_flye/flye_out_"$sample"/assembly.fasta "$sample"_OUTPUT.fasta | gzip - > ../05_racon/"$sample"_aln.paf.gz;
+done
+conda deactivate 
+# then run racon
+for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
+do racon -u -t "$4" "$sample"_OUTPUT.fasta ../05_racon/"$sample"_aln.paf.gz ../04_flye/flye_out_"$sample"/assembly.fasta > ../05_racon/"$sample"_racon.fasta;
+done
+
+
 #skANI
 #quast
 #quast summary

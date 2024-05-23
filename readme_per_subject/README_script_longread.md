@@ -153,8 +153,54 @@ i did this because otherwise it needs to run again all the steps, I will run it 
 The result of this run: 
 is 2 directories for each sample. SO the command worked. 
 I removed the log at the end of the command because flye makes it's own log files. 
+
 ## Racon
+For racon I went back looking at the howto file from my supervisor, here he says you first have to run minimap2 on the samples. 
+
+the info that is important from the howto file: 
+````
+#first map genome with minimap2	
+minimap2 -t [threads] -x map-ont -secondary=no -m 100 $genome $reads | gzip - > aln.paf.gz
+
+# then run racon
+racon -u -t [threads] $reads aln.paf.gz $genome > ${base}_racon.fasta
+````
+I only don't exacly now what must be filled in in the variables "$". I send a message to my supervisor and now it's clear, the reads are like I tought from porechop, and the genome is the result from the assembler, in this case thus flye. 
+
+So I need both fasta files from porchop and from flye as input. 
+with this information I made the following part: 
+first I made the part for minimap2:
+````
+conda activate minimap2
+for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
+do minimap2 -t "$4" -x map-ont -secondary=no -m 100 ../04_flye/flye_out_"$sample"/assembly.fasta "$sample"_OUTPUT.fasta | gzip - > ../05_racon/"$sample"_aln.paf.gz;
+done
+conda deactivate 
+````
+I tested this part in the command line: 
+````
+for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
+do minimap2 -t 4 -x map-ont -secondary=no -m 100 ../04_flye/flye_out_"$sample"/assembly.fasta "$sample"_OUTPUT.fasta | gzip - > ../05_racon/"$sample"_aln.paf.gz;
+````
+This worked
+
+
+for the racon p art I made the following: 
+````
+for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
+do racon -u -t "$4" "$sample"_OUTPUT.fasta ../05_racon/"$sample"_aln.paf.gz ../04_flye/flye_out_"$sample"/assembly.fasta > "$sample"_racon.fasta;
+done
+````
+I again tested this in the command line: 
+````
+for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
+do racon -u -t 4 "$sample"_OUTPUT.fasta ../05_racon/"$sample"_aln.paf.gz ../04_flye/flye_out_"$sample"/assembly.fasta > ../05_racon/"$sample"_racon.fasta;
+done
+````
+This also worked.
+
 ## SkANI
+
 ## Quast
 ## Quast summary
 ## Xlsx

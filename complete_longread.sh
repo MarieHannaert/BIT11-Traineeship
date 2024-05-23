@@ -128,10 +128,10 @@ conda deactivate
 echo "racon version:" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 racon --version | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 conda activate skani 
-conda list | grep skani | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda list | grep skani | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 conda deactivate 
 conda activate quast
-conda list | grep quast | tee -a "$OUT"/"$DATE_TIME"_Illuminapipeline.log
+conda list | grep quast | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 conda deactivate
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 #adding the command to the log file
@@ -160,6 +160,7 @@ elif [[ $3 != "gz" ]] && [[ $3 != "bz2" ]]; then
     echo "This is not a correct file format, it can only be gz or bz2" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
     exit 1 2>> "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 fi
+
 echo "File reformatting done and starting nanoplot at $(date '+%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 
 #part about nanoplot
@@ -183,7 +184,7 @@ echo "filtlong done, starting porechop ABI at $(date '+%H:%M')"| tee -a "$OUT"/"
 conda activate porechop_abi
 echo "Performing Porechop_ABI" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 mkdir -p "$OUT"/03_porechopABI
-pigz -d *.fq.gz
+pigz -dk *.fq.gz
 for sample in `ls *.fq | awk 'BEGIN{FS=".fq"}{print $1}'`; do porechop_abi -abi -t 32 -v 2 -i $sample.fq -o "$OUT"/03_porechopABI/"$sample"_trimmed.fq ; done  | tee "$OUT"/03_porechopABI/"$DATE_TIME"_porechopABI.log
 conda deactivate 
 
@@ -274,15 +275,15 @@ conda deactivate
 #xlsx
 #part were I make a xlsx file of the skANI output and the Quast output 
 echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Longreadpipeline.log
-skani_quast_to_xlsx.py "$DIR"/"$OUT"/ 2>> "$DATE_TIME"_Longreadpipeline.log
+skani_quast_to_xlsx.py "$DIR""$OUT"/ 2>> "$DATE_TIME"_Longreadpipeline.log
 
 #beeswarmvisualisation
 #part for beeswarm visualisation of assemblies 
 echo "making beeswarm visualisation of assemblies" | tee -a "$DATE_TIME"_Longreadpipeline.log
-beeswarm_vis_assemblies.R "$DIR/$OUT/07_quast/quast_summary_table.txt" 2>> "$DATE_TIME"_Longreadpipeline.log
+beeswarm_vis_assemblies.R "$DIR""$OUT/07_quast/quast_summary_table.txt" 2>> "$DATE_TIME"_Longreadpipeline.log
 
 mv skANI_Quast_output.xlsx 06_skani/
 mv beeswarm_vis_assemblies.png 07_quast/
 rm -rd ../tmp
 #End of primary analysis
-echo "end of primary analysis for long-reads data at $(date '+%Y/%m/%d_%H:%M')"| tee -a "$DATE_TIME"_Illuminapipeline.log
+echo "end of primary analysis for long-reads data at $(date '+%Y/%m/%d_%H:%M')"| tee -a "$DATE_TIME"_Longreadpipeline.log

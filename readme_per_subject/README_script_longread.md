@@ -277,3 +277,21 @@ mv skANI_Quast_output.xlsx 06_skani/
 mv beeswarm_vis_assemblies.png 07_quast/
 ````
 ## Big first test of the whole script
+all the steps worked, exept the xlsx and the beeswarm. 
+````
+making xlsx of skANI and quast
+Traceback (most recent call last):
+  File "/home/genomics/mhannaert/scripts/skani_quast_to_xlsx.py", line 14, in <module>
+    os.chdir(location)
+FileNotFoundError: [Errno 2] No such file or directory: 'data/mini_longread/start_samples//first_try/'
+making beeswarm visualisation of assemblies
+Error in file(file, "rt") : cannot open the connection
+Calls: read.delim -> read.table -> file
+In addition: Warning message:
+In file(file, "rt") :
+  cannot open file 'data/mini_longread/start_samples//first_try/07_quast/quast_summary_table.txt': No such file or directory
+Execution halted
+````
+there is a double "/" so that why it couldn't find the files. 
+so this will be solved the next time. 
+So exept from that small error the pipeline already works. 

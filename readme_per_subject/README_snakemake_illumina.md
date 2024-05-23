@@ -2577,3 +2577,60 @@ I need to make a script directory because that's needed for if I want to make a 
 
 Also when it works I need to write a readme, so that everybody know how to install and which steps to take before using it but also which is important and where there is extra focus needed. 
 
+I added these script directory
+````
+rule xlsx:
+    input:
+        "results/07_quast/quast_summary_table.txt",
+        "results/06_skani/skani_results_file.txt"
+    output:
+        "results/06_skani/skANI_Quast_output.xlsx"
+    shell:
+        """
+          scripts/skani_quast_to_xlsx.py results/
+          mv results/skANI_Quast_output.xlsx results/06_skani/
+        """
+
+rule beeswarm:
+    input:
+        "results/07_quast/quast_summary_table.txt"
+    output:
+        "results/07_quast/beeswarm_vis_assemblies.png"
+    shell: 
+        """
+            scripts/beeswarm_vis_assemblies.R {input}
+            mv beeswarm_vis_assemblies.png results/07_quast/
+        """
+````
+Also my supervisor told me to make a DAG visualisation of my snakemake 
+
+## readme 
+I will now start writing the readme file of this pipeline so that other people can use this pipeline 
+
+I asked my supervisor what needed to be in the readme file 
+
+The result of this pipeline can be found **https://github.com/MarieHannaert/Illumina_Snakemake**
+
+## Dag
+Yesterday I wanted to make a DAG of my snakemake but this didn't work I got the error:'NoneType' object has no attribute 'ignore_incomplete'.
+I googled the error and I found the following info: https://github.com/snakemake/snakemake/issues/2637. So we asked the IT to update snakemake on the server. 
+
+It worked, but now I want to make a simpler version, because now it does it for each sample. with 2 samples cv, bt what if it are 75 samples, then it would be to much 
+There must be an other way said my supervisor so I will take a look. 
+
+I found this on stackoverflow the solution is use --rulegraph instead of --dag
+This gave me the wanted output. 
+
+snakeùake --report report.html gives also a nice result 
+
+## Feedback 
+I need to take a look at the cores because does snakemake use the defined cores from the command line or does snakemake use them if they are defined in the rule. 
+
+When I looked for this in the documentation, you can define the numer of treads by using "treads:", an other way is by placing this in the params and there give the treads like you would do in the command line and the last option is with the snakemake comman with the "-j" option 
+
+The question now is if you do like, -j option and in the params, to wich do snakemake give a preference? 
+
+This is the information I found : 
+>The threads directive in a rule is interpreted as a maximum: when less cores than threads are provided, the number of threads a rule uses will be reduced to the number of given cores.
+
+

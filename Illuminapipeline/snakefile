@@ -4,7 +4,7 @@ CONDITIONS = ["1", "2"]
 
 # Define directories
 REFDIR = os.getcwd()
-print(REFDIR)
+#print(REFDIR)
 sample_dir = REFDIR+"/data/samples"
 
 sample_names = []
@@ -14,7 +14,7 @@ for i in range(len(sample_list)):
     if sample.endswith("_1.fq.gz"):
         samples = sample.split("_1.fq")[0]
         sample_names.append(samples)
-        print(sample_names)
+        #print(sample_names)
 
 rule all:
     input:
@@ -65,7 +65,7 @@ rule Kraken2:
     output:
         "results/02_kraken2/{names}_{con}_kraken2.report"
     params:
-        threads=16
+        threads=8
     log:
         "logs/Kraken2_{names}_{con}.log"
     shell:
@@ -79,7 +79,7 @@ rule Krona:
     output:
         "results/03_krona/{names}_{con}_krona.html"
     params:
-        extra="-t 5 -m 3"
+        extra="-t 32 -m 3"
     log:
         "logs/Krona_{names}_{con}.log"
     conda:
@@ -99,7 +99,7 @@ rule Fastp:
         html = "results/04_fastp/{names}_fastp.html",
         json = "results/04_fastp/{names}_fastp.json"
     params:
-        extra="-w 32"
+        extra="-w 16"
     log:
         "logs/fastp_{names}.log"
     shell:
@@ -116,7 +116,7 @@ rule shovill:
         result = directory("results/05_shovill/{names}/")
         
     params:
-        extra = "--cpus 16 --ram 16 --minlen 500 --trim"
+        extra = "--cpus 32 --ram 16 --minlen 500 --trim"
     log:
         "logs/shovill_{names}.log"
     conda:
@@ -142,7 +142,7 @@ rule skani:
     output:
         result = "results/06_skani/skani_results_file.txt"
     params:
-        extra = "-t 24 -n 1"
+        extra = "-t 32 -n 1"
     log:
         "logs/skani.log"
     conda:
@@ -199,7 +199,7 @@ rule xlsx:
         "results/06_skani/skANI_Quast_output.xlsx"
     shell:
         """
-          skani_quast_to_xlsx.py results/
+          scripts/skani_quast_to_xlsx.py results/
           mv results/skANI_Quast_output.xlsx results/06_skani/
         """
 
@@ -210,7 +210,7 @@ rule beeswarm:
         "results/07_quast/beeswarm_vis_assemblies.png"
     shell: 
         """
-            beeswarm_vis_assemblies.R {input}
+            scripts/beeswarm_vis_assemblies.R {input}
             mv beeswarm_vis_assemblies.png results/07_quast/
         """
 
@@ -240,7 +240,7 @@ rule buscosummary:
     shell:
         """
         mkdir -p {output}
-        cp -r {input}/short_summary.specific.burkholderiales_odb10.*.txt {output}
+        cp -r {input}/short_summary.specific.*.txt {output}
         cd {output}
         for i in $(seq 1 15 $(ls -1 | wc -l)); do
             echo "Verwerking van bestanden $i tot $((i+14))"

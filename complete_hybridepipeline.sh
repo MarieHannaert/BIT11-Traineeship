@@ -4,6 +4,21 @@
 #when this script is completed, it needs to become a snakemake pipeline
 #This script is meant to be performed on the server
 
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/opt/miniforge3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/opt/miniforge3/etc/profile.d/conda.sh" ]; then
+        . "/opt/miniforge3/etc/profile.d/conda.sh"
+    else
+        export PATH="/opt/miniforge3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
 DIR=$1
 OUT=$2
 START_DIR=$(pwd)
@@ -30,11 +45,23 @@ elif [[ $3 != "gz" ]] && [[ $3 != "bz2" ]]; then
     exit 1 2>> "$OUT"/"$DATE_TIME"_Hybridepipeline.log
 fi
 
+#asking chromosome size 
+echo "Enter chromosome size (90%) as an intiger (e.g.2500000):"
+read CHROMOSOME_SIZE
+
+
 #CSV part
+echo "Making input CSV for Hybracter"| tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
 touch "$OUT"/input_table_hybracter.csv
 
 for sample in *1.fq.gz; do
     base_name=$(basename -- "$sample" _1.fq.gz)
-    echo "${base_name}_hybrid,${base_name}.fq.gz,${base_name}_1.fq.gz,${base_name}_2.fq.gz" >> "$OUT"/input_table_hybracter.csv
+    echo -e "${base_name}_hybrid,${base_name}.fq.gz,"$CHROMOSOME_SIZE",${base_name}_1.fq.gz,${base_name}_2.fq.gz" >> "$OUT"/input_table_hybracter.csv
 done
 
+#Hybracter
+echo "Performing Hybracter"| tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+mkdir -p "$OUT"/01_hybracter
+conda activate hybracterENV
+hybracter hybrid -i "$OUT"/input_table_hybracter.csv -o "$OUT"/01_hybracter/ -t "$4"
+conda deactivate 

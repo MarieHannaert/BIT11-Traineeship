@@ -85,3 +85,107 @@ This is correct.
 
 I added "cd "$START_DIR"" because then I think the directories will be more correct 
 
+## Adding hybracter part 
+now that the CSV is correct I can start by adding the hybracter part. 
+The command that must be included in my script is the following:
+````
+hybracter hybrid -i <input.csv> -o <output_dir> -t <threads> 
+````
+This is from the hybracter documentation. 
+
+I added the following block of code: 
+````
+#Hybracter
+echo "Performing Hybracter"| tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+mkdir -p 01_hybracter
+hybracter hybrid -i "$OUT"/input_table_hybracter.csv -o "$OUT"/01_hybracter/ -t "$4" 2>> "$OUT"/01_hybracter/"$DATE_TIME"_hybracter.log
+````
+I will test this, There were small errors: 
+I forgot the output before the output directory. And I forgot that hybracter a conda env was. 
+so I fixed these things, and test this again: 
+The hybracter didn't work, output logfile: 
+````
+
+hybracter version 0.6.0
+
+[2024:05:24 11:12:57] Copying system default config to testing_csv/01_hybracter/config.yaml
+[2024:05:24 11:12:57] Updating config file with new values
+[2024:05:24 11:12:57] Writing config file to testing_csv/01_hybracter/config.yaml
+[2024:05:24 11:12:57] ------------------
+[2024:05:24 11:12:57] | Runtime config |
+[2024:05:24 11:12:57] ------------------
+
+args:
+  contaminants: none
+  databases: null
+  dnaapler_custom_db: none
+  flyeModel: --nano-hq
+  input: testing_csv/input_table_hybracter.csv
+  log: testing_csv/01_hybracter/hybracter.log
+  logic: best
+  medakaModel: r1041_e82_400bps_sup_v4.2.0
+  min_length: 1000
+  min_quality: 9
+  no_medaka: false
+  no_pypolca: false
+  output: testing_csv/01_hybracter/
+  single: false
+  skip_qc: false
+  subsample_depth: 100
+qc:
+  compression: 5
+  hostRemoveFlagstat: -f 4 -F 3584
+  minimapIndex: -I 8G
+  minimapModel: map-ont
+resources:
+  big:
+    cpu: 16
+    mem: 32000
+    time: '23:59:00'
+  med:
+    cpu: 8
+    mem: 16000
+    time: 08:00:00
+  sml:
+    cpu: 1
+    mem: 4000
+    time: 00:00:05
+
+[2024:05:24 11:12:57] ---------------------
+[2024:05:24 11:12:57] | Snakemake command |
+[2024:05:24 11:12:57] ---------------------
+
+snakemake -s /opt/miniforge3/envs/hybracterENV/lib/python3.12/site-packages/hybracter/workflow/hybrid.smk --configfile testing_csv/01_hybracter/config.yaml --jobs 4 --use-conda --conda-prefix /opt/miniforge3/envs/hybracterENV/lib/python3.12/site-packages/hybracter/workflow/conda --rerun-incomplete --printshellcmds --nolock --show-failed-logs --conda-frontend mamba
+Config file /opt/miniforge3/envs/hybracterENV/lib/python3.12/site-packages/hybracter/workflow/../config/config.yaml is extended by additional config specified via the command line.
+
+    FATAL: Error parsing testing_csv/input_table_hybracter.csv. Line ['GBBC_502_hybrid', 'GBBC_502.fq.gz', 'GBBC_502_1.fq.gz', 'GBBC_502_2.fq.gz'] 
+    does not have 5 columns. 
+    Please check the formatting of testing_csv/input_table_hybracter.csv. 
+[2024:05:24 11:12:58] ERROR: Snakemake failed
+````
+So it's because my CSV file only has 4 columns. 
+And he expect 5 columns. 
+
+So I changed my csv with an open space in column 3, but this wasn't the solution. 
+    FATAL: Error parsing testing_csv/input_table_hybracter.csv. One of 
+    GBBC_502.fq.gz or 
+    GBBC_502_1.fq.gz or 
+    GBBC_502_2.fq.gz 
+    does not exist or    is not an integer. 
+    Check formatting, and that 
+    file names and file paths are correct.
+
+## Asking after chromosome size
+The solution we have, is we going to ask after the 90% of the estimated chromosome size. and then fill it in in the CSV 
+
+This didn't directly work, because READ gives a string and not an intiger, and for the csv it must be an intiger
+
+The errors wasn't about the intigre, it was about one sample that missed an "_" so wasn't recoginised. 
+
+NOw I'm running it again and, 
+Now it wokred, it runned for a long time. 
+
+I got a lot of different outputs. 
+I thinks that the most important one is in the **/home/genomics/mhannaert/data/mini_hybride/testing_csv/01_hybracter/FINAL_OUTPUT/incomplete/GBBC_504_hybrid_final.fasta** Because I think I will do further steps like skANI, Quast, Busco on these files. 
+
+So the next steps will be adding the control tools. 

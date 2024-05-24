@@ -192,13 +192,113 @@ I thinks that the most important one is in the **/home/genomics/mhannaert/data/m
 So the next steps will be adding the control tools. 
 
 For these steps my supervisor told me to check for complete and inclomplete because both can happen.
-## Adding skANI
- 
 
+so I made the following part: 
+````
+#checking complete or incomplete 
+#!/bin/bash
+if [[ -d "$DIR""$OUT"/01_hybracter/FINAL_OUTPUT/incomplete ]];
+then
+    STATUS = complete 
+elif [[ -d "$DIR""$OUT"/01_hybracter/FINAL_OUTPUT/incomplete ]];
+then 
+    STATUS = incomplete
+fi
+````
+## Adding skANI
 For skANI I used my existing code: 
 ````
+# performing skani
+conda activate skani 
+#making a directory and a log file 
+mkdir -p "$OUT"/02_skani 
+touch "$OUT"/02_skani/"$DATE_TIME"_skani.log
+echo "performing skani at $(date '+%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+#command to perform skani on the 
+skani search "$OUT"/01_hybracter/FINAL_OUTPUT/"$STATUS"/*_hybrid_final.fasta -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o 02_skani/skani_results_file.txt -t 24 -n 1 2>> 02_skani/"$DATE_TIME"_skani.log
+conda deactivate 
 
+echo "Finished skANI and starting Quast at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Illuminapipeline.log
 ````
+Because of the long running time, I will test everything at the end, because these parts are mostly copied from other scripts. 
 
 ## Adding Quast 
+````
+echo "performing quast" | tee -a "$DATE_TIME"_Illuminapipeline.log
+for f in "$OUT"/01_hybracter/FINAL_OUTPUT/"$STATUS"/*_hybrid_final.fasta; do quast.py "$f" -o "$OUT"/03_quast/"$f";done 
+
+# Create a file to store the QUAST summary table
+echo "making a summary of quast data" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+touch "$OUT"/03_quast/quast_summary_table.txt
+
+# Add the header to the summary table
+echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> "$OUT"/03_quast/quast_summary_table.txt
+
+# Initialize a counter
+counter=1
+
+# Loop over all the transposed_report.tsv files and read them
+for file in $(find -type f -name "transposed_report.tsv"); do
+    # Show progress
+    echo "Processing file: $counter"
+
+    # Add the content of each file to the summary table (excluding the header)
+    tail -n +2 "$file" >> "$OUT"/03_quast/quast_summary_table.txt
+
+    # Increment the counter
+    counter=$((counter+1))
+done
+
+conda deactivate
+````
 ## Adding Busco
+````
+#Busco part
+conda activate busco
+echo "performing busco $(date '+%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+for sample in $(ls "$OUT"/01_hybracter/FINAL_OUTPUT/"$STATUS"/*_hybrid_final.fasta | awk 'BEGIN{FS="_hybrid_final.fasta"}{print $1}'); 
+do busco -i "$sample"_hybrid_final.fasta -o "$OUT"/04_busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
+
+#extra busco part
+#PLOT SUMMARY of busco
+mkdir -p busco_summaries
+echo "making summary busco" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+
+cp "$OUT"/04_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
+
+conda deactivate
+````
+
+## First bigger test run
+````
+performing skani at 15:57
+/home/genomics/mhannaert/scripts/complete_hybridepipeline.sh: line 186: 02_skani/2024-05-24_14-40_skani.log: No such file or directory
+Finished skANI and starting Quast at 15:57
+performing quast
+ERROR! File not found (contigs): testing_csv/01_hybracter/FINAL_OUTPUT//*_hybrid_final.fasta
+
+In case you have troubles running QUAST, you can write to quast.support@cab.spbu.ru
+or report an issue on our GitHub repository https://github.com/ablab/quast/issues
+Please provide us with quast.log file from the output directory.
+making a summary of quast data
+touch: cannot touch 'testing_csv/03_quast/quast_summary_table.txt': No such file or directory
+/home/genomics/mhannaert/scripts/complete_hybridepipeline.sh: line 202: testing_csv/03_quast/quast_summary_table.txt: No such file or directory
+performing busco 15:57
+ls: cannot access 'testing_csv/01_hybracter/FINAL_OUTPUT//*_hybrid_final.fasta': No such file or directory
+making summary busco
+cp: cannot stat 'testing_csv/04_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt': No such file or directory
+````
+first I need to fix the part about complete/incomplete 
+I forgot to put some "" around the variables 
+Also I changed that part to: 
+````
+#checking complete or incomplete 
+if [ -d "$OUT"/01_hybracter/FINAL_OUTPUT/incomplete ]; then
+    STATUS="incomplete"
+else
+    STATUS="complete"
+fi
+````
+It looks like that has worked, I also forgot to change the logfile name somewere. 
+There are a lot of small errors. 
+

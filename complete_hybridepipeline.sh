@@ -166,3 +166,66 @@ hybracter hybrid -i "$OUT"/input_table_hybracter.csv -o "$OUT"/01_hybracter/ -t 
 conda deactivate 
 echo "Done with Hybracter at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
 
+#checking complete or incomplete 
+if [ -d "$OUT"/01_hybracter/FINAL_OUTPUT/incomplete ]; then
+    STATUS="incomplete"
+else
+    STATUS="complete"
+fi
+
+# performing skani
+conda activate skani 
+#making a directory and a log file 
+mkdir -p "$OUT"/02_skani 
+touch "$OUT"/02_skani/"$DATE_TIME"_skani.log
+echo "performing skani at $(date '+%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+#command to perform skani on the 
+skani search "$OUT"/01_hybracter/FINAL_OUTPUT/"$STATUS"/*_hybrid_final.fasta -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o 02_skani/skani_results_file.txt -t 24 -n 1 2>> "$OUT"/02_skani/"$DATE_TIME"_skani.log
+conda deactivate 
+
+echo "Finished skANI and starting Quast at $(date '+%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+
+#performing quast
+conda activate quast
+
+echo "performing quast" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+for f in "$OUT"/01_hybracter/FINAL_OUTPUT/"$STATUS"/*_hybrid_final.fasta; do quast.py "$f" -o "$OUT"/03_quast/"$f";done 
+
+# Create a file to store the QUAST summary table
+echo "making a summary of quast data" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+touch "$OUT"/03_quast/quast_summary_table.txt
+
+# Add the header to the summary table
+echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> "$OUT"/03_quast/quast_summary_table.txt
+
+# Initialize a counter
+counter=1
+
+# Loop over all the transposed_report.tsv files and read them
+for file in $(find -type f -name "transposed_report.tsv"); do
+    # Show progress
+    echo "Processing file: $counter"
+
+    # Add the content of each file to the summary table (excluding the header)
+    tail -n +2 "$file" >> "$OUT"/03_quast/quast_summary_table.txt
+
+    # Increment the counter
+    counter=$((counter+1))
+done
+
+conda deactivate
+
+#Busco part
+conda activate busco
+echo "performing busco $(date '+%H:%M')" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+for sample in $(ls "$OUT"/01_hybracter/FINAL_OUTPUT/"$STATUS"/*_hybrid_final.fasta | awk 'BEGIN{FS="_hybrid_final.fasta"}{print $1}'); 
+do busco -i "$sample"_hybrid_final.fasta -o "$OUT"/04_busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
+
+#extra busco part
+#PLOT SUMMARY of busco
+mkdir -p busco_summaries
+echo "making summary busco" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
+
+cp "$OUT"/04_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
+
+conda deactivate

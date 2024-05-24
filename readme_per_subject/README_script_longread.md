@@ -313,3 +313,49 @@ Execution halted
 end of primary analysis for long-reads data at 2024/05/24_10:05
 ````
 so still an error. 
+
+## Third run
+````
+The output file can be found in:  /home/genomics/mhannaert/data/mini_longread/start_samples/first_try
+Processed 3 lines.
+Processed 3 lines.
+
+skANI_Quast_output.xlsx is made in:  /home/genomics/mhannaert/data/mini_longread/start_samples/first_try
+making beeswarm visualisation of assemblies
+null device
+          1
+mv: cannot stat 'skANI_Quast_output.xlsx': No such file or directory
+mv: cannot move 'beeswarm_vis_assemblies.png' to '07_quast/': Not a directory
+rm: cannot remove '../tmp': No such file or directory
+end of primary analysis for long-reads data at 2024/05/24_13:48
+````
+
+The quast was wrong because in the line 284 stood also the file name, but only the directory is neede there and that's the reason why this wasn't recognised by the R script, also change the directory so that everything is correct 
+
+## fourth run 
+result of this run: 
+````
+/home/genomics/mhannaert/scripts/complete_longread.sh: line 290: unexpected EOF while looking for matching `"'
+/home/genomics/mhannaert/scripts/complete_longread.sh: line 291: syntax error: unexpected end of file
+````
+There is no beeswarm visualisation made, this is what can be found on these lines: 
+````
+#beeswarmvisualisation
+#part for beeswarm visualisation of assemblies 
+echo "making beeswarm visualisation of assemblies" | tee -a "$DATE_TIME"_Longreadpipeline.log
+beeswarm_vis_assemblies.R "$DIR""$OUT/07_quast/ 2>> "$DATE_TIME"_Longreadpipeline.log
+
+mv "$OUT"/skANI_Quast_output.xlsx 06_skani/
+mv "$OUT"/beeswarm_vis_assemblies.png 07_quast/
+rm -rd tmp
+#End of primary analysis
+echo "end of primary analysis for long-reads data at $(date '+%Y/%m/%d_%H:%M')"| tee -a "$DATE_TIME"_Longreadpipeline.log
+
+````
+on the lineof the beeswarm is ther indeed a not matching "" 
+
+so I fix this 
+I don't know why the xlsx is not moved. 
+
+So I think there is something wrong with my paths 
+

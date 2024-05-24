@@ -208,27 +208,27 @@ done
 
 conda deactivate 
 
-echo "Flye done, starting minimap2 at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "Flye done, starting minimap2 at $(date '+%H:%M')"| tee -a ../"$DATE_TIME"_Longreadpipeline.log
 #Racon
 mkdir -p ../05_racon
 #first map genome with minimap2
-echo "Perfomring minimap2" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "Perfomring minimap2" | tee -a ../"$DATE_TIME"_Longreadpipeline.log
 conda activate minimap2
 for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
 do minimap2 -t "$4" -x map-ont -secondary=no -m 100 ../04_flye/flye_out_"$sample"/assembly.fasta "$sample"_OUTPUT.fasta | gzip - > ../05_racon/"$sample"_aln.paf.gz;
 done
 conda deactivate 
 
-echo "minimap2 done, starting racon at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "minimap2 done, starting racon at $(date '+%H:%M')"| tee -a ../"$DATE_TIME"_Longreadpipeline.log
 # then run racon
-echo "Performing racon" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "Performing racon" | tee -a ../"$DATE_TIME"_Longreadpipeline.log
 for sample in `ls *_OUTPUT.fasta | awk 'BEGIN{FS="_OUTPUT.fasta"}{print $1}'`;
 do racon -u -t "$4" "$sample"_OUTPUT.fasta ../05_racon/"$sample"_aln.paf.gz ../04_flye/flye_out_"$sample"/assembly.fasta > ../05_racon/"$sample"_racon.fasta;
 done
 
 cd ..
 
-echo "Racon done, starting skANI at $(date '+%H:%M')"| tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
+echo "Racon done, starting skANI at $(date '+%H:%M')"| tee -a "$DATE_TIME"_Longreadpipeline.log
 #skANI
 conda activate skani 
 #making a directory and a log file 
@@ -272,7 +272,7 @@ done
 
 conda deactivate
 
-cd "$START_DIR"
+
 #xlsx
 #part were I make a xlsx file of the skANI output and the Quast output 
 echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Longreadpipeline.log
@@ -281,7 +281,7 @@ skani_quast_to_xlsx.py "$DIR""$OUT"/ 2>> "$DATE_TIME"_Longreadpipeline.log
 #beeswarmvisualisation
 #part for beeswarm visualisation of assemblies 
 echo "making beeswarm visualisation of assemblies" | tee -a "$DATE_TIME"_Longreadpipeline.log
-beeswarm_vis_assemblies.R "$DIR""$OUT/07_quast/quast_summary_table.txt" 2>> "$DATE_TIME"_Longreadpipeline.log
+beeswarm_vis_assemblies.R "$DIR""$OUT"/07_quast/ 2>> "$DATE_TIME"_Longreadpipeline.log
 
 mv skANI_Quast_output.xlsx 06_skani/
 mv beeswarm_vis_assemblies.png 07_quast/

@@ -59,3 +59,29 @@ done
 The third column is still empty because I don't know what to fill in for max chromosome lengt. 
 I asked my supervisor this and he said this isn't needed, but now I don't know if I need to leave it empty or set something in place. 
 
+## Test CVS 
+SO I runned this part, but there is a small error. I tested it with two sets, but I got 6 lines in the csv. This isn't correct, the problem is that I selected on "*.fq.gz" but he also takes _1 and _2 
+so I will select on "*_1.fq.gz" I think that will sove the problem. 
+
+This isn't correct either, this is my output:
+````
+GBBC_502_1.fq.gz_hybrid,GBBC_502_1.fq.gz.fq.gz, ,GBBC_502_1.fq.gz_1.fq.gz,GBBC_502_1.fq.gz_2.fq.gz
+````
+There is a double fq.gz part. 
+
+I changed it to 
+
+````
+for file in *_1.fq.gz; do
+  sample=${file%_1.fq.gz}
+  echo "${sample}_hybrid,${sample}.fq.gz,${sample}_1.fq.gz,${sample}_2.fq.gz" >> "$OUT"/input_table_hybracter.csv
+done
+````
+now I got as output: 
+````
+GBBC_502_hybrid,GBBC_502.fq.gz,GBBC_502_1.fq.gz,GBBC_502_2.fq.gz
+````
+This is correct. 
+
+I added "cd "$START_DIR"" because then I think the directories will be more correct 
+

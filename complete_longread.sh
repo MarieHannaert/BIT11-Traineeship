@@ -272,6 +272,7 @@ done
 
 conda deactivate
 
+cd "$START_DIR"
 #xlsx
 #part were I make a xlsx file of the skANI output and the Quast output 
 echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Longreadpipeline.log

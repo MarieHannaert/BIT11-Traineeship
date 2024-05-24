@@ -295,3 +295,21 @@ Execution halted
 there is a double "/" so that why it couldn't find the files. 
 so this will be solved the next time. 
 So exept from that small error the pipeline already works. 
+
+## Second test 
+After running: 
+````
+Traceback (most recent call last):
+  File "/home/genomics/mhannaert/scripts/skani_quast_to_xlsx.py", line 14, in <module>
+    os.chdir(location)
+FileNotFoundError: [Errno 2] No such file or directory: 'data/mini_longread/start_samples/first_try/'
+making beeswarm visualisation of assemblies
+Error in file(file, "rt") : cannot open the connection
+Calls: read.delim -> read.table -> file
+In addition: Warning message:
+In file(file, "rt") :
+  cannot open file 'data/mini_longread/start_samples/first_try/07_quast/quast_summary_table.txt': No such file or directory
+Execution halted
+end of primary analysis for long-reads data at 2024/05/24_10:05
+````
+so still an error. 

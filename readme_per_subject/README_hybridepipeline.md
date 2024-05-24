@@ -188,4 +188,17 @@ Now it wokred, it runned for a long time.
 I got a lot of different outputs. 
 I thinks that the most important one is in the **/home/genomics/mhannaert/data/mini_hybride/testing_csv/01_hybracter/FINAL_OUTPUT/incomplete/GBBC_504_hybrid_final.fasta** Because I think I will do further steps like skANI, Quast, Busco on these files. 
 
+## Next steps
 So the next steps will be adding the control tools. 
+
+For these steps my supervisor told me to check for complete and inclomplete because both can happen.
+## Adding skANI
+ 
+
+For skANI I used my existing code: 
+````
+
+````
+
+## Adding Quast 
+## Adding Busco

@@ -392,3 +392,22 @@ rm -dr busco_downloads
 
 conda deactivate
 ````
+Okay, after running this: 
+skANI and Quast are fine but for busco there are some errors: 
+````
+making summary busco
+cp: cannot stat '04_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt': No such file or directory
+rm: cannot remove 'busco_downloads': No such file or directory
+````
+My guesse is again the path. 
+I also added in the beginning nog DIR = $pwd, to update it to the absolute path. 
+It was not that, there was an error in the busco command, I didn't change the input from .fna to .fasta, and that the reason it couldn't find the files. 
+
+So I will now run again, and hopefully this was the last error. 
+The busco error is solved, And there were nice busco outputs. 
+
+SO I think we are done here. And this can be made in to a snakemake. here in the snakemake I will also add the part for the xlsx and the beeswarm. 
+
+
+
+

@@ -98,6 +98,7 @@ cd "$DIR"
 
 #making the output directory 
 mkdir -p "$OUT"
+DIR=$(pwd)
 
 #making a log file 
 touch "$OUT"/"$DATE_TIME"_Hybridepipeline.log
@@ -225,7 +226,7 @@ conda deactivate
 conda activate busco
 
 echo "performing busco" | tee -a "$DATE_TIME"_Hybridepipeline.log
-for sample in $(ls assemblies/*_hybrid_final.fasta | awk 'BEGIN{FS=".fna"}{print $1}'); do busco -i "$sample".fna -o 04_busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
+for sample in $(ls assemblies/*_hybrid_final.fasta | awk 'BEGIN{FS="_hybrid_final.fasta"}{print $1}'); do busco -i "$sample"_hybrid_final.fasta -o 04_busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
 
 #extra busco part
 #PLOT SUMMARY of busco

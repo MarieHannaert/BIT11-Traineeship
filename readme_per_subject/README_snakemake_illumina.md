@@ -2633,4 +2633,33 @@ The question now is if you do like, -j option and in the params, to wich do snak
 This is the information I found : 
 >The threads directive in a rule is interpreted as a maximum: when less cores than threads are provided, the number of threads a rule uses will be reduced to the number of given cores.
 
+## Error about beewarm visulaisation  
+My supervisor tested my snakemake and he had one error. This error was about the snakemake visualisation. Because the beeswarm is not globally installed and I just had it installed locally it didn't work by him. We discussed this and the solution could be to make a conda env for this. So I will do this. 
+Because I have no rights on the server I will do this in WSL. 
+
+````
+mamba create -n r_beeswarm r-essentials r-base
+mamba activate r_beeswarm 
+R
+> install.packages("beeswarm")
+> q()
+conda env export > beeswarm.yaml
+mamba deactivate
+````
+The next step is adding this tho the snake file. 
+````
+rule beeswarm:
+    input:
+        "results/07_quast/quast_summary_table.txt"
+    output:
+        "results/07_quast/beeswarm_vis_assemblies.png"
+    conda:
+        "envs/beeswarm.yaml"
+    shell: 
+        """
+            scripts/beeswarm_vis_assemblies.R {input}
+            mv beeswarm_vis_assemblies.png results/07_quast/
+        """
+````
+This normally would solve the error. 
 

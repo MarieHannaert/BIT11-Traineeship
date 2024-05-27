@@ -208,6 +208,8 @@ rule beeswarm:
         "results/07_quast/quast_summary_table.txt"
     output:
         "results/07_quast/beeswarm_vis_assemblies.png"
+    conda:
+        "envs/beeswarm.yaml"
     shell: 
         """
             scripts/beeswarm_vis_assemblies.R {input}

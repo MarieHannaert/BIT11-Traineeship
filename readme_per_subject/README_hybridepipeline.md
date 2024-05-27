@@ -302,3 +302,93 @@ fi
 It looks like that has worked, I also forgot to change the logfile name somewere. 
 There are a lot of small errors. 
 
+## Error solving 
+There are some errors in the paths and directories, so I will solve this with the following part of code: 
+````
+echo "collecting fasta files in assemblies/" | tee -a ../"$DATE_TIME"_Illuminapipeline.log
+mkdir "$OUT"/assemblies
+cd "$OUT"/01_hybracter/FINAL_OUTPUT/"$STATUS"/
+cp *_hybrid_final.fasta ../../../assemblies/
+cd ../../../
+````
+And now I can change the inputs again, this will be easier and I will make less errors against paths
+
+I changed the next part all to: 
+````
+# performing skani
+conda activate skani 
+#making a directory and a log file 
+mkdir -p 02_skani 
+touch 02_skani/"$DATE_TIME"_skani.log
+echo "performing skani at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Hybridepipeline.log
+#command to perform skani on the 
+skani search assemblies/*_hybrid_final.fasta -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o 02_skani/skani_results_file.txt -t 24 -n 1 2>> 02_skani/"$DATE_TIME"_skani.log
+conda deactivate 
+
+echo "Finished skANI and starting Quast at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Hybridepipeline.log
+
+#performing quast
+conda activate quast
+
+echo "performing quast" | tee -a "$DATE_TIME"_Hybridepipeline.log
+for f in assemblies/*_hybrid_final.fasta; do quast.py "$f" -o 03_quast/"$f";done 
+
+# Create a file to store the QUAST summary table
+echo "making a summary of quast data" | tee -a "$DATE_TIME"_Hybridepipeline.log
+touch 03_quast/quast_summary_table.txt
+
+# Add the header to the summary table
+echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> 03_quast/quast_summary_table.txt
+
+# Initialize a counter
+counter=1
+
+# Loop over all the transposed_report.tsv files and read them
+for file in $(find -type f -name "transposed_report.tsv"); do
+    # Show progress
+    echo "Processing file: $counter"
+
+    # Add the content of each file to the summary table (excluding the header)
+    tail -n +2 "$file" >> 03_quast/quast_summary_table.txt
+
+    # Increment the counter
+    counter=$((counter+1))
+done
+
+conda deactivate
+
+#Busco part
+conda activate busco
+
+echo "performing busco" | tee -a "$DATE_TIME"_Hybridepipeline.log
+for sample in $(ls assemblies/*_hybrid_final.fasta | awk 'BEGIN{FS=".fna"}{print $1}'); do busco -i "$sample".fna -o 04_busco/"$sample" -m genome --auto-lineage-prok -c 32 ; done
+
+#extra busco part
+#PLOT SUMMARY of busco
+mkdir -p busco_summaries
+echo "making summary busco" | tee -a "$DATE_TIME"_Hybridepipeline.log
+
+cp 04_busco/*/*/short_summary.specific.burkholderiales_odb10.*.txt busco_summaries/
+cd busco_summaries/ 
+#to generate a summary plot in PNG
+#generate_plot.py -wd .
+
+
+for i in $(seq 1 15 $(ls -1 | wc -l)); do
+  echo "Verwerking van bestanden $i tot $((i+14))"
+  mkdir -p part_"$i-$((i+14))"
+  ls -1 | tail -n +$i | head -15 | while read file; do
+    echo "Verwerking van bestand: $file"
+    mv "$file" part_"$i-$((i+14))"
+  done
+  generate_plot.py -wd part_"$i-$((i+14))"
+done
+
+#going back to main directory
+cd ..
+
+#removing the busco_downloads directory 
+rm -dr busco_downloads
+
+conda deactivate
+````

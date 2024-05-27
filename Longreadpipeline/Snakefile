@@ -1,0 +1,134 @@
+import os
+
+# Define directories
+REFDIR = os.getcwd()
+#print(REFDIR)
+sample_dir = REFDIR+"/data/samples"
+
+sample_names = []
+sample_list = os.listdir(sample_dir)
+for i in range(len(sample_list)):
+    sample = sample_list[i]
+    if sample.endswith(".fq.gz"):
+        samples = sample.split(".fq")[0]
+        sample_names.append(samples)
+        print(sample_names)
+        
+rule all:
+    input:
+        "results/01_nanoplot/NanoPlot-report.html",
+        expand("results/02_filtlong/{names}_1000bp_100X.fq.gz", names=sample_names),
+        expand("results/03_porechopABI/{names}_trimmed.fq", names=sample_names),
+        expand("results/05_racon/{names}_racon.fasta", names=sample_names)
+
+rule nanoplot:
+    input:
+        expand("data/samples/{names}.fq.gz", names=sample_names)
+    output: 
+        "results/01_nanoplot/NanoPlot-report.html",
+        result = directory("results/01_nanoplot/")
+    log:
+        "logs/nanoplot.log"
+    params:
+        extra="-t 2"
+    conda:
+        "envs/nanoplot.yaml"
+    shell:
+        """
+        NanoPlot {params.extra} --fastq data/samples/*.fq.gz -o {output.result} --maxlength 40000 --plots --legacy hex dot 2>> {log}
+        """
+rule filtlong:
+    input:
+        "data/samples/{names}.fq.gz"
+    output: 
+        "results/02_filtlong/{names}_1000bp_100X.fq.gz"
+    log:
+        "logs/filtlong_{names}.log"
+    params:
+        extra="--min_length 1000 --target_bases 540000000"
+    conda:
+        "envs/filtlong.yaml"
+    shell:
+        """
+        filtlong {params.extra} {input} |  gzip > {output} 2>> {log}
+        """
+rule unzip:
+    input:
+        "data/samples/{names}.fq.gz",
+        expand("results/02_filtlong/{names}_1000bp_100X.fq.gz", names=sample_names)
+    output:
+        "data/samples/{names}.fq"
+    shell: 
+        """
+            pigz -dk {input[0]}
+        """
+rule porechop: 
+    input:
+        "data/samples/{names}.fq"
+    output:
+        "results/03_porechopABI/{names}_trimmed.fq"
+    log:
+        "logs/porechop_{names}.log"
+    params:
+        extra="-abi -t 32 -v 2"
+    conda:
+        "envs/porechop.yaml"
+    shell:
+        """
+        porechop_abi {params.extra} -i {input} -o {output} 2>> {log}
+        """
+rule reformat:
+    input:
+        "results/03_porechopABI/{names}_trimmed.fq"
+    output:
+        "results/03_porechopABI/{names}_OUTPUT.fasta"
+    shell:
+        """
+        cat {input} | awk '{if(NR%4==1) {printf(">%s\n",substr($0,2));} else if(NR%4==2) print;}' > {output}
+        """
+rule flye:
+    input: 
+        "results/03_porechopABI/{names}_OUTPUT.fasta"
+    output:
+        directory("results/04_flye/flye_out_{names}")
+    log:
+        "logs/flye_{names}.log"
+    params:
+        extra="--threads 32 --iterations 1 --scaffold"
+    conda: 
+        "envs/flye.yaml"
+    shell:
+        """
+        flye --asm-coverage 50 --genome-size 5.4g --nano-hq {input} --out-dir {output} {params.extra} 2>> {log}
+        """
+rule minimap2:
+    input: 
+        porechop=expand("results/03_porechopABI/{names}_OUTPUT.fasta",names=sample_names),
+        flye=expand("results/04_flye/flye_out_{names}", names=sample_names)
+    output:
+        "results/05_racon/{names}_aln.paf.gz"
+    log:
+        "logs/minimap2_{names}.log"
+    params:
+        extra="-t 16 -x map-ont -secondary=no -m 100"
+    conda: 
+        "envs/minimap2.yaml"
+    shell:
+        """
+        minimap2 {params.extra} {input.flye}/assembly.fasta {input.porechop} | gzip - > {output} 2>> {log}
+        """
+rule racon:
+    input: 
+        porechop=expand("results/03_porechopABI/{names}_OUTPUT.fasta",names=sample_names),
+        flye=expand("results/04_flye/flye_out_{names}", names=sample_names),
+        minimap=expand("results/05_racon/{names}_aln.paf.gz", names=sample_names)
+    output:
+        "results/05_racon/{names}_racon.fasta"
+    log:
+        "logs/racon_{names}.log"
+    params:
+        extra="-u -t 16"
+    shell:
+        """
+        racon {params.extra} {input.porechop} {input.minimap} {input.flye}/assembly.fasta > {output} 2>> {log}
+        """

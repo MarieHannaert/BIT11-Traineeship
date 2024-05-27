@@ -359,3 +359,77 @@ I don't know why the xlsx is not moved.
 
 So I think there is something wrong with my paths 
 
+## Further solving of errors 
+So I runned it, because it monday and I wanted to see what my errors were: 
+````
+Finished: 2024-05-27 11:05:38
+Elapsed time: 0:00:02.340660
+NOTICEs: 2; WARNINGs: 0; non-fatal ERRORs: 0
+
+Thank you for using QUAST!
+making a summary of quast data
+Processing file: 1
+Processing file: 2
+making xlsx of skANI and quast
+making beeswarm visualisation of assemblies
+mv: cannot stat 'skANI_Quast_output.xlsx': No such file or directory
+mv: cannot stat 'beeswarm_vis_assemblies.png': No such file or directory
+end of primary analysis for long-reads data at 2024/05/27_11:05
+````
+This was from the terminal, now I took a look in the log file: 
+````
+making xlsx of skANI and quast
+Traceback (most recent call last):
+  File "/home/genomics/mhannaert/scripts/skani_quast_to_xlsx.py", line 14, in <module>
+    os.chdir(location)
+FileNotFoundError: [Errno 2] No such file or directory: 'data/mini_longread/start_samples/test_4/'
+making beeswarm visualisation of assemblies
+Error in file(file, "rt") : cannot open the connection
+Calls: read.delim -> read.table -> file
+In addition: Warning message:
+In file(file, "rt") :
+  cannot open file 'data/mini_longread/start_samples/test_4/07_quast/': No such file or directory
+Execution halted
+end of primary analysis for long-reads data at 2024/05/27_11:05
+````
+They couldn't find the files for the summaries, so I need to take a look again at all the paths that were given and wee were it doesn't fit. 
+the problem is that: "data/mini_longread/start_samples/test_4/" that it starts with data, en this cannot be found in the current directory
+
+The biggest thing is that it worked with the Illumina pipeline en not now, but I found why, 
+When I tested the Illuminapipeline, I always used a absolute path and not a relative, now I used a relative, so maybe a solution can be that after I change from directory I update the "$DIR" variable to the absolute path, so that it doesn't matter if it's absolute in the beginning or relative 
+
+I do this by just adding the following line at line 104:
+````
+DIR = $(pwd)
+````
+This will update the $DIR variable to the absolute path, I will also add this in other script to prevent this error. 
+I'm now testing if this solves the error: 
+This is not very promesing: 
+````
+TERMINAL:
+Finished Quast and starting Busco at 12:46
+mv: cannot stat 'skANI_Quast_output.xlsx': No such file or directory
+mv: cannot stat 'beeswarm_vis_assemblies.png': No such file or directory
+end of primary analysis for long-reads data at 2024/05/27_12:46
+
+LOGFILE:
+FileNotFoundError: [Errno 2] No such file or directory: 'data/mini_longread//test_4/'
+making beeswarm visualisation of assemblies
+Error in file(file, "rt") : cannot open the connection
+Calls: read.delim -> read.table -> file
+In addition: Warning message:
+In file(file, "rt") :
+  cannot open file 'data/mini_longread//test_4/07_quast/quast_summary_table.txt': No such file or directory
+Execution halted
+Finished Quast and starting Busco at 12:46
+end of primary analysis for long-reads data at 2024/05/27_12:46
+````
+een dubbele "/" 
+I tested this, but there is something wrong: 
+I wanted to print the $DIR 
+but the out put was: 
+````
+/home/genomics/mhannaert/scripts/complete_longread.sh: line 104: DIR: command not found
+````
+SO my pwd isn't saved. There are some spaces around, so I removed these, This solved it, so maybe now The double sapce will also not happen, I test again the script.: 
+This worked like I wanted, so this script is ready to be a snakemake. 

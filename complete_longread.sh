@@ -101,10 +101,12 @@ cd "$DIR"
 
 #making the output directory 
 mkdir -p "$OUT"
+DIR=$(pwd)
 
 #making a log file 
 touch "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 #adding the user of the script that day to the log file 
+#echo "$DIR"
 echo "The user of" "$DATE_TIME" "is:" "$USER" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 echo "====================================================================" | tee -a "$OUT"/"$DATE_TIME"_Longreadpipeline.log
 # adding the versions of the tools that are used 
@@ -243,8 +245,8 @@ echo "Finished skANI and starting Quast at $(date '+%H:%M')" | tee -a "$DATE_TIM
 
 #quast
 conda activate quast
-cd 05_racon/
 echo "performing quast" | tee -a "$DATE_TIME"_Longreadpipeline.log
+cd 05_racon/
 for f in *_racon.fasta; do quast.py "$f" -o ../07_quast/"$f";done 
 cd ..
 #quast summary
@@ -272,19 +274,20 @@ done
 
 conda deactivate
 
-
-#xlsx
 #part were I make a xlsx file of the skANI output and the Quast output 
 echo "making xlsx of skANI and quast" | tee -a "$DATE_TIME"_Longreadpipeline.log
-skani_quast_to_xlsx.py "$DIR""$OUT"/ 2>> "$DATE_TIME"_Longreadpipeline.log
+skani_quast_to_xlsx.py "$DIR"/"$OUT"/ 2>> "$DATE_TIME"_Longreadpipeline.log
 
-#beeswarmvisualisation
 #part for beeswarm visualisation of assemblies 
 echo "making beeswarm visualisation of assemblies" | tee -a "$DATE_TIME"_Longreadpipeline.log
-beeswarm_vis_assemblies.R "$DIR""$OUT"/07_quast/ 2>> "$DATE_TIME"_Longreadpipeline.log
+beeswarm_vis_assemblies.R "$DIR/$OUT/07_quast/quast_summary_table.txt" 2>> "$DATE_TIME"_Longreadpipeline.log
 
+echo "Finished Quast and starting Busco at $(date '+%H:%M')" | tee -a "$DATE_TIME"_Longreadpipeline.log
+
+#part for moving the results in the right directory
 mv skANI_Quast_output.xlsx 06_skani/
 mv beeswarm_vis_assemblies.png 07_quast/
 rm -rd ../tmp
+
 #End of primary analysis
 echo "end of primary analysis for long-reads data at $(date '+%Y/%m/%d_%H:%M')"| tee -a "$DATE_TIME"_Longreadpipeline.log

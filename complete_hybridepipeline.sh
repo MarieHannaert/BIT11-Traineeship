@@ -174,7 +174,7 @@ else
     STATUS="complete"
 fi
 
-echo "collecting fasta files in assemblies/" | tee -a ../"$DATE_TIME"_Illuminapipeline.log
+echo "collecting fasta files in assemblies/" | tee -a "$OUT"/"$DATE_TIME"_Hybridepipeline.log
 mkdir "$OUT"/assemblies
 cd "$OUT"/01_hybracter/FINAL_OUTPUT/"$STATUS"/
 cp *_hybrid_final.fasta ../../../assemblies/

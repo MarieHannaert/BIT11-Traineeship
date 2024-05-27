@@ -407,7 +407,3 @@ So I will now run again, and hopefully this was the last error.
 The busco error is solved, And there were nice busco outputs. 
 
 SO I think we are done here. And this can be made in to a snakemake. here in the snakemake I will also add the part for the xlsx and the beeswarm. 
-
-
-
-

@@ -1,0 +1,39 @@
+import os
+
+# Define directories
+REFDIR = os.getcwd()
+#print(REFDIR)
+sample_dir = REFDIR+"/data/samples"
+
+sample_names = []
+sample_list = os.listdir(sample_dir)
+for i in range(len(sample_list)):
+    sample = sample_list[i]
+    if sample.endswith(".fq.gz"):
+        samples = sample.split(".fq")[0]
+        sample_names.append(samples)
+        print(sample_names)
+
+rule all:
+    input:
+        
+        
+rule hybracter:
+    input:
+        "data/samples/input_table_hybracter.csv"
+    output:
+        "results/01_hybracter/"
+        result = directory("results/01_hybracter/")
+    log: 
+        "logs/hybracter.log"
+    params:
+        extra="-t 16"
+    conda:
+        "envs/hybracter.yaml"
+    shell:
+        """
+        hybracter hybrid -i {input} -o {output.result} {params.extra}
+        """
+
+
+    

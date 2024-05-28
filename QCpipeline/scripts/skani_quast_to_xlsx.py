@@ -20,7 +20,7 @@ ws = wb.active
 
 #making a first sheet for skANI
 ws.title = "skANI_output"
-with open('06_skani/skani_results_file.txt') as csv_file:
+with open('skani/skani_results_file.txt') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter='\t')
     line_count = 0
     for row in csv_reader:
@@ -31,7 +31,7 @@ csv_file.close()
 
 #making a second sheet for Quast
 ws2 = wb.create_sheet(title="Quast_output")
-with open('07_quast/quast_summary_table.txt') as csv_file:
+with open('quast/quast_summary_table.txt') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter='\t')
     line_count = 0
     for row in csv_reader:

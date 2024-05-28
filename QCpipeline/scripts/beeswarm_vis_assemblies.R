@@ -7,7 +7,7 @@ location <- args[1]
 
 #reading in the data file from quast
 quast_summary_table <- read.delim(location)
-#quast_summary_table <- read.delim("/home/genomics/mhannaert/data/mini_testdata/gz_files/output_test4/06_quast/quast_summary_table.txt")
+#quast_summary_table <- read.delim("/home/genomics/mhannaert/data/mini_testdata/gz_files/output_test4/quast/quast_summary_table.txt")
 
 #open PNG file to save
 png("beeswarm_vis_assemblies.png")

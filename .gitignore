@@ -3,3 +3,5 @@
 *.log
 */.snakemake
 readme_per_subject/Hybridepipeline/generate_plot_busco
+/QCpipeline/data
+/.snakemake

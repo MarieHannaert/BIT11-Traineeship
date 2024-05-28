@@ -84,8 +84,9 @@ rule reformat:
         "results/03_porechopABI/{names}_OUTPUT.fasta"
     shell:
         """
-        cat {input} | awk '{if(NR%4==1) {printf(">%s\n",substr($0,2));} else if(NR%4==2) print;}' > {output}
+        cat {input} | awk '{{if(NR%4==1) {{printf(">%s\\n",substr($0,2));}} else if(NR%4==2) print;}}' > {output}
         """
+
 rule flye:
     input: 
         "results/03_porechopABI/{names}_OUTPUT.fasta"
@@ -103,8 +104,8 @@ rule flye:
         """
 rule minimap2:
     input: 
-        porechop=expand("results/03_porechopABI/{names}_OUTPUT.fasta",names=sample_names),
-        flye=expand("results/04_flye/flye_out_{names}", names=sample_names)
+        porechop="results/03_porechopABI/{names}_OUTPUT.fasta",
+        flye="results/04_flye/flye_out_{names}/assembly.fasta"
     output:
         "results/05_racon/{names}_aln.paf.gz"
     log:
@@ -115,20 +116,21 @@ rule minimap2:
         "envs/minimap2.yaml"
     shell:
         """
-        minimap2 {params.extra} {input.flye}/assembly.fasta {input.porechop} | gzip - > {output} 2>> {log}
+        minimap2 {params.extra} {input.flye} {input.porechop} | gzip - > {output} 2>> {log}
         """
 rule racon:
     input: 
-        porechop=expand("results/03_porechopABI/{names}_OUTPUT.fasta",names=sample_names),
-        flye=expand("results/04_flye/flye_out_{names}", names=sample_names),
-        minimap=expand("results/05_racon/{names}_aln.paf.gz", names=sample_names)
+        porechop="results/03_porechopABI/{names}_OUTPUT.fasta",
+        flye="results/04_flye/flye_out_{names}/assembly.fasta",
+        minimap="results/05_racon/{names}_aln.paf.gz"
     output:
         "results/05_racon/{names}_racon.fasta"
     log:
         "logs/racon_{names}.log"
-    params:
-        extra="-u -t 16"
+    params: 
+        extra="--include-unpolished -t 16"
     shell:
         """
-        racon {params.extra} {input.porechop} {input.minimap} {input.flye}/assembly.fasta > {output} 2>> {log}
+        racon {params.extra} {input.porechop} {input.minimap} {input.flye} > {output} 2>> {log}
         """
+

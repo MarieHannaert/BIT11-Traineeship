@@ -257,4 +257,86 @@ ValueError: unexpected '{' in field name, when formatting the following:
         cat {input} | awk '{if(NR%4==1) {printf(">%s
 ",substr($0,2));} else if(NR%4==2) print;}' > {output}
 ````
-This is not a nice error, I will sove it tommorw 
+This is not a nice error, I will solve it tommorw 
+#### solving the error
+I did the following: 
+Escaping Curly Braces:
+
+Original: {if(NR%4==1) {printf(">%s\n",substr($0,2));} else if(NR%4==2) print;}
+Corrected: {{if(NR%4==1) {{printf(">%s\\n",substr($0,2));}} else if(NR%4==2) print;}}
+In the corrected version, each { is replaced with {{ and each } is replaced with }}.
+
+Escaping Newline Character:
+
+Original: printf(">%s\n",substr($0,2));
+Corrected: printf(">%s\\n",substr($0,2));
+In the corrected version, the newline character \n is properly escaped as \\n.
+
+By making these changes, you ensure that Snakemake correctly interprets the curly braces and the newline character within the awk command, preventing the ValueError from occurring.
+
+Now I got an new error: 
+````
+[Tue May 28 09:11:23 2024]
+Error in rule racon:
+    jobid: 8
+    input: results/03_porechopABI/GBBC502_OUTPUT.fasta, results/03_porechopABI/GBBC_504_sup_OUTPUT.fasta, results/04_flye/flye_out_GBBC502, results/04_flye/flye_out_GBBC_504_sup, results/05_racon/GBBC502_aln.paf.gz, results/05_racon/GBBC_504_sup_aln.paf.gz
+    output: results/05_racon/GBBC502_racon.fasta
+    log: logs/racon_GBBC502.log (check log file(s) for error details)
+    shell:
+        
+        racon -u -t 16 results/03_porechopABI/GBBC502_OUTPUT.fasta results/03_porechopABI/GBBC_504_sup_OUTPUT.fasta results/05_racon/GBBC502_aln.paf.gz results/05_racon/GBBC_504_sup_aln.paf.gz results/04_flye/flye_out_GBBC502 results/04_flye/flye_out_GBBC_504_sup/assembly.fasta > results/05_racon/GBBC502_racon.fasta 2>> logs/racon_GBBC502.log
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job racon since they might be corrupted:
+results/05_racon/GBBC502_racon.fasta
+[Tue May 28 09:11:23 2024]
+Error in rule racon:
+    jobid: 15
+    input: results/03_porechopABI/GBBC502_OUTPUT.fasta, results/03_porechopABI/GBBC_504_sup_OUTPUT.fasta, results/04_flye/flye_out_GBBC502, results/04_flye/flye_out_GBBC_504_sup, results/05_racon/GBBC502_aln.paf.gz, results/05_racon/GBBC_504_sup_aln.paf.gz
+    output: results/05_racon/GBBC_504_sup_racon.fasta
+    log: logs/racon_GBBC_504_sup.log (check log file(s) for error details)
+    shell:
+        
+        racon -u -t 16 results/03_porechopABI/GBBC502_OUTPUT.fasta results/03_porechopABI/GBBC_504_sup_OUTPUT.fasta results/05_racon/GBBC502_aln.paf.gz results/05_racon/GBBC_504_sup_aln.paf.gz results/04_flye/flye_out_GBBC502 results/04_flye/flye_out_GBBC_504_sup/assembly.fasta > results/05_racon/GBBC_504_sup_racon.fasta 2>> logs/racon_GBBC_504_sup.log
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+LOGFILE:
+[racon::createPolisher] error: file results/03_porechopABI/GBBC_504_sup_OUTPUT.fasta has unsupported format extension (valid extensions: .mhap, .mhap.gz, .paf, .paf.gz, .sam, .sam.gz)!
+[racon::createPolisher] error: file results/03_porechopABI/GBBC_504_sup_OUTPUT.fasta has unsupported format extension (valid extensions: .mhap, .mhap.gz, .paf, .paf.gz, .sam, .sam.gz)!
+````
+I find this very strange error because I used the same input as in the script. It looks like he thinks it's already the next argument, because there these extensions are right
+
+I changed the code by 
+Direct File Paths vs. expand Function:
+
+Original: Used expand function for each input to generate paths for all samples.
+Corrected: Directly specified the paths using placeholders {names}.
+Input flye Path:
+
+Original: "results/04_flye/flye_out_{names}" (which might cause issues since the flye input does not point directly to the assembly file).
+Corrected: "results/04_flye/flye_out_{names}/assembly.fasta" (points directly to the assembly file).
+Order and Format of Arguments in racon Command:
+
+Original: {input.porechop} {input.minimap} {input.flye}/assembly.fasta
+Corrected: {input.porechop} {input.minimap} {input.flye}
+This ensures that racon receives the correct files in the correct order:
+
+Reads file (porechop)
+Alignment file (minimap)
+Assembly file (flye)
+
+Now I got the following error: 
+[racon::Polisher::initialize] loaded target sequences 0.021570 s
+[racon::Polisher::initialize] loaded sequences 3.496450 s
+[racon::Polisher::initialize] error: empty overlap set!
+
+I went checking and indeed the minimap is empty. 
+
+Oke after long searching I found that the error the use of exand was, when I removed this it all worked and there were no errors. 
+I found out I didn't understand the expand option completly, I thougt it just just checked if the files were there all, I hadn't made the klick that it then also will use all these files at once. and that's were it twice went wrong. 
+-> https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html
+
+### skANI
+

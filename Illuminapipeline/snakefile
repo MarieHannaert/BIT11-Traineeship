@@ -241,18 +241,9 @@ rule buscosummary:
         "envs/busco.yaml"
     shell:
         """
-        mkdir -p {output}
-        cp -r {input}/short_summary.specific.*.txt {output}
-        cd {output}
-        for i in $(seq 1 15 $(ls -1 | wc -l)); do
-            echo "Verwerking van bestanden $i tot $((i+14))"
-            mkdir -p part_"$i-$((i+14))"
-            find . -maxdepth 1 -type f | tail -n +$i | head -15 | while read file; do
-                echo "Verwerking van bestand: $file"
-                mv "$file" part_"$i-$((i+14))"
-            done
-            generate_plot.py -wd part_"$i-$((i+14))"
-        done
-        cd ../..
+        scripts/busco_summary.sh results/busco_summary
+        # Optional: Remove the busco_downloads directory if it exists in the parent directory
         rm -dr busco_downloads
+        rm busco*.log
+        rm -dr tmp
         """

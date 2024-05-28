@@ -5,3 +5,5 @@
 readme_per_subject/Hybridepipeline/generate_plot_busco
 /QCpipeline/data
 /.snakemake
+Longreadpipeline/data/samples/GBBC502.fq
+Longreadpipeline/data/samples/GBBC_504_sup.fq

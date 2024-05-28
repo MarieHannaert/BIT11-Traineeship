@@ -23,7 +23,8 @@ rule all:
         "results/06_skani/skani_results_file.txt",
         "results/07_quast/quast_summary_table.txt",
         "results/06_skani/skANI_Quast_output.xlsx",
-        "results/07_quast/beeswarm_vis_assemblies.png"
+        "results/07_quast/beeswarm_vis_assemblies.png",
+        "results/busco_summary"
 
 rule nanoplot:
     input:
@@ -109,7 +110,7 @@ rule flye:
 rule minimap2:
     input: 
         porechop="results/03_porechopABI/{names}_OUTPUT.fasta",
-        flye="results/04_flye/flye_out_{names}/assembly.fasta"
+        flye="results/04_flye/flye_out_{names}"
     output:
         "results/05_racon/{names}_aln.paf.gz"
     log:
@@ -120,12 +121,12 @@ rule minimap2:
         "envs/minimap2.yaml"
     shell:
         """
-        minimap2 {params.extra} {input.flye} {input.porechop} | gzip - > {output} 2>> {log}
+        minimap2 {params.extra} {input.flye}/assembly.fasta {input.porechop} | gzip - > {output} 2>> {log}
         """
 rule racon:
     input: 
         porechop="results/03_porechopABI/{names}_OUTPUT.fasta",
-        flye="results/04_flye/flye_out_{names}/assembly.fasta",
+        flye="results/04_flye/flye_out_{names}",
         minimap="results/05_racon/{names}_aln.paf.gz"
     output:
         "results/05_racon/{names}_racon.fasta"
@@ -135,7 +136,7 @@ rule racon:
         extra="--include-unpolished -t 16"
     shell:
         """
-        racon {params.extra} {input.porechop} {input.minimap} {input.flye} > {output} 2>> {log}
+        racon {params.extra} {input.porechop} {input.minimap} {input.flye}/assembly.fasta > {output} 2>> {log}
         """
 rule skani:
     input:
@@ -212,4 +213,33 @@ rule beeswarm:
         """
             scripts/beeswarm_vis_assemblies.R {input}
             mv beeswarm_vis_assemblies.png results/07_quast/
+        """
+rule busco:
+    input: 
+        "results/05_racon/{names}_racon.fasta"
+    output:
+        directory("results/08_busco/{names}")
+    params:
+        extra= "-m genome --auto-lineage-prok -c 32"
+    log: 
+        "logs/busco_{names}.log"
+    conda:
+        "envs/busco.yaml"
+    shell:
+        """
+        busco -i {input} -o {output} {params.extra} 2>> {log}
+        """
+rule buscosummary:
+    input:
+        expand("results/08_busco/{names}", names=sample_names)
+    output:
+        directory("results/busco_summary")
+    conda:
+        "envs/busco.yaml"
+    shell:
+        """
+        scripts/busco_summary.sh results/busco_summary
+        rm -dr busco_downloads
+        rm busco*.log
+        rm -dr tmp
         """

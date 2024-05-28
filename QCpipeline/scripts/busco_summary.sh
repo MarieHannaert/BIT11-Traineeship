@@ -38,8 +38,6 @@ done
 
 echo "Files have been organized into subdirectories."
 
-# Optional: Go back to the parent directory
-cd ..
 
-# Optional: Remove the busco_downloads directory if it exists in the parent directory
-rm -dr busco_downloads
+
+

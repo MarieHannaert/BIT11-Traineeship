@@ -19,7 +19,11 @@ rule all:
         "results/01_nanoplot/NanoPlot-report.html",
         expand("results/02_filtlong/{names}_1000bp_100X.fq.gz", names=sample_names),
         expand("results/03_porechopABI/{names}_trimmed.fq", names=sample_names),
-        expand("results/05_racon/{names}_racon.fasta", names=sample_names)
+        expand("results/05_racon/{names}_racon.fasta", names=sample_names),
+        "results/06_skani/skani_results_file.txt",
+        "results/07_quast/quast_summary_table.txt",
+        "results/06_skani/skANI_Quast_output.xlsx",
+        "results/07_quast/beeswarm_vis_assemblies.png"
 
 rule nanoplot:
     input:
@@ -133,4 +137,79 @@ rule racon:
         """
         racon {params.extra} {input.porechop} {input.minimap} {input.flye} > {output} 2>> {log}
         """
+rule skani:
+    input:
+        expand("results/05_racon/{names}_racon.fasta", names=sample_names)
+    output:
+        result = "results/06_skani/skani_results_file.txt"
+    params:
+        extra = "-t 32 -n 1"
+    log:
+        "logs/skani.log"
+    conda:
+       "envs/skani.yaml"
+    shell:
+        """
+        skani search {input} -d /home/genomics/bioinf_databases/skani/skani-gtdb-r214-sketch-v0.2 -o {output} {params.extra} 2>> {log}
+        """
+rule quast:
+    input:
+        "results/05_racon/{names}_racon.fasta"
+    output:
+        directory("results/07_quast/{names}/")
+    log:
+        "logs/quast_{names}.log"
+    conda:
+        "envs/quast.yaml"
+    shell:
+        """
+        quast.py {input} -o {output} 2>> {log}
+        """
+rule summarytable:
+    input:
+        expand("results/07_quast/{names}", names = sample_names)
+    output: 
+        "results/07_quast/quast_summary_table.txt"
+    shell:
+        """
+        touch {output}
+        echo -e "Assembly\tcontigs (>= 0 bp)\tcontigs (>= 1000 bp)\tcontigs (>= 5000 bp)\tcontigs (>= 10000 bp)\tcontigs (>= 25000 bp)\tcontigs (>= 50000 bp)\tTotal length (>= 0 bp)\tTotal length (>= 1000 bp)\tTotal length (>= 5000 bp)\tTotal length (>= 10000 bp)\tTotal length (>= 25000 bp)\tTotal length (>= 50000 bp)\tcontigs\tLargest contig\tTotal length\tGC (%)\tN50\tN90\tauN\tL50\tL90\tN's per 100 kbp" >> {output}
+        # Initialize a counter
+        counter=1
 
+        # Loop over all the transposed_report.tsv files and read them
+        for file in $(find -type f -name "transposed_report.tsv"); do
+            # Show progress
+            echo "Processing file: $counter"
+
+            # Add the content of each file to the summary table (excluding the header)
+            tail -n +2 "$file" >> {output}
+
+            # Increment the counter
+            counter=$((counter+1))
+        done
+        """
+rule xlsx:
+    input:
+        "results/07_quast/quast_summary_table.txt",
+        "results/06_skani/skani_results_file.txt"
+    output:
+        "results/06_skani/skANI_Quast_output.xlsx"
+    shell:
+        """
+          scripts/skani_quast_to_xlsx.py results/
+          mv results/skANI_Quast_output.xlsx results/06_skani/
+        """
+
+rule beeswarm:
+    input:
+        "results/07_quast/quast_summary_table.txt"
+    output:
+        "results/07_quast/beeswarm_vis_assemblies.png"
+    conda:
+        "envs/beeswarm.yaml"
+    shell: 
+        """
+            scripts/beeswarm_vis_assemblies.R {input}
+            mv beeswarm_vis_assemblies.png results/07_quast/
+        """

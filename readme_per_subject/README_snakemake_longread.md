@@ -338,5 +338,24 @@ Oke after long searching I found that the error the use of exand was, when I rem
 I found out I didn't understand the expand option completly, I thougt it just just checked if the files were there all, I hadn't made the klick that it then also will use all these files at once. and that's were it twice went wrong. 
 -> https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html
 
-### skANI
+### skANI and quast + summaries
+I just copied this part and changed the input from the snakefile of the illuminapipeline 
+
+I tested this: 
+skANI and Quast and Quast summary worked, the beeswarem not, error: "/usr/bin/bash: line 2: scripts/beeswarm_vis_assemblies.R: No such file or directory"
+
+i forgot to add the scripts to the script folder. 
+
+I runned again, 
+following error: 
+"Error in library(beeswarm) : there is no package called ‘beeswarm’
+Execution halted"
+
+So my conda env doesn't work
+
+I found the following inf: https://github.com/conda-forge/r-beeswarm-feedstock
+I performed that in my conda env r_beeswarm and I'm testing this now. 
+This worked the visulaisation was done. 
+
+### busco
 

@@ -2705,3 +2705,60 @@ so the busco summmary problem is solved.
 ## feedback on readme 
 skani and kraken2 the databases needs to be installed before running 
 -> paths to these databses need to be changed. 
+
+## test supervisor 
+When he tested the script he had the following error: 
+````
+[16:34] Steve Baeyen
+/usr/bin/bash: line 2: scripts/skani_quast_to_xlsx.py: Permission denied
+
+[Wed May 29 16:33:15 2024]
+
+Error in rule xlsx:
+
+    jobid: 24
+
+    input: results/07_quast/quast_summary_table.txt, results/06_skani/skani_results_file.txt
+
+    output: results/06_skani/skANI_Quast_output.xlsx
+
+    shell:
+
+          scripts/skani_quast_to_xlsx.py results/
+
+          mv results/skANI_Quast_output.xlsx results/06_skani/
+
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+ 
+/usr/bin/bash: line 2: scripts/busco_summary.sh: Permission denied
+
+[Wed May 29 16:33:17 2024]
+
+Error in rule buscosummary:
+
+    jobid: 26
+
+    input: results/08_busco/GBBC3416, results/08_busco/GBBC502
+
+    output: results/busco_summary
+
+    conda-env: /home/genomics/sbaeyen/snakemake/Illumina_Snakemake/.snakemake/conda/96f5fe235979e15eb43dcce174c29347_
+
+    shell:
+
+        scripts/busco_summary.sh results/busco_summary
+
+        # Optional: Remove the busco_downloads directory if it exists in the parent directory
+
+        rm -dr busco_downloads
+
+        rm busco*.log
+
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+ 
+/usr/bin/bash: line 2: scripts/beeswarm_vis_assemblies.R: Permission denied
+````
+The solution here is that I need to specify in the readme file that when you clone the repository you need to execute the following command 
+````
+chmod +x scripts/*
+````

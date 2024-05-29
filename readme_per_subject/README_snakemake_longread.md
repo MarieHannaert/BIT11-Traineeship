@@ -548,3 +548,4 @@ feedback on the readme was that skani also skani sketch needs to be installed an
 -> paths to these databses need to be changed. 
 
 the github will also be renamed to nanopore pipeline because thats is more consistent with illumina. 
+

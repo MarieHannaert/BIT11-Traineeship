@@ -2663,3 +2663,41 @@ rule beeswarm:
 ````
 This normally would solve the error. 
 
+## testing after changing busco summary
+````
+Files have been organized into subdirectories.
+rm: cannot remove 'tmp': No such file or directory
+[Wed May 29 09:42:34 2024]
+Error in rule buscosummary:
+    jobid: 26
+    input: results/08_busco/070_001_240321_001_0355_099_01_4691, results/08_busco/070_001_240321_001_0356_099_01_4691
+    output: results/busco_summary
+    conda-env: /home/genomics/mhannaert/snakemake/Illuminapipeline/.snakemake/conda/ab3b814a790df8a3227c1437cdffa761_
+    shell:
+
+        scripts/busco_summary.sh results/busco_summary
+        # Optional: Remove the busco_downloads directory if it exists in the parent directory
+        rm -dr busco_downloads
+        rm busco*.log
+        rm -dr tmp
+
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job buscosummary since they might be corrupted:
+results/busco_summary
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-29T090255.461152.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+````
+You can see in the beginning of the error that the tmp folder couldn't be removed, so I think it didn't work because of that. 
+so I will rmove that line and test again. 
+now it worked: 
+````
+[Wed May 29 11:28:39 2024]
+Finished job 0.
+29 of 29 steps (100%) done
+Complete log: .snakemake/log/2024-05-29T105214.001108.snakemake.log
+````
+so the busco summmary problem is solved. 

@@ -245,5 +245,4 @@ rule buscosummary:
         # Optional: Remove the busco_downloads directory if it exists in the parent directory
         rm -dr busco_downloads
         rm busco*.log
-        rm -dr tmp
         """

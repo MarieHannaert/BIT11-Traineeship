@@ -454,3 +454,83 @@ I removed the cd and rm command out of the script
 now it worked. 
 
 so I think it will work completly now, i will do a big test tomorrow. 
+
+## first big test
+I runned the snakemake and it was a succes. everything is was made: 
+````
+[Wed May 29 09:53:58 2024]
+Finished job 0.
+25 of 25 steps (100%) done
+Complete log: .snakemake/log/2024-05-29T090401.213223.snakemake.log
+````
+The change in the busco summary also worked perfect. 
+So this pipeline is ready and the readme can be made. 
+
+I will also make a dag graph and a report
+
+## Feedback 
+- the nanoplot is over writing itself -> give it a folder with name
+- inbetween fq of porechop remove at the end 
+
+so in the output I added the names part: 
+````
+rule nanoplot:
+    input:
+        expand("data/samples/{names}.fq.gz", names=sample_names)
+    output: 
+        "results/01_nanoplot/{names}/NanoPlot-report.html",
+        result = directory("results/01_nanoplot/{names}")
+    log:
+        "logs/nanoplot_{names}.log"
+    params:
+        extra="-t 24"
+    conda:
+        "envs/nanoplot.yaml"
+    shell:
+        """
+        NanoPlot {params.extra} --fastq data/samples/*.fq.gz -o {output.result} --plots --legacy hex dot 2>> {log}
+        """
+````
+
+In the reformat rule I added the remove the intermedair: 
+````
+rule reformat:
+    input:
+        "results/03_porechopABI/{names}_trimmed.fq"
+    output:
+        "results/03_porechopABI/{names}_OUTPUT.fasta"
+    shell:
+        """
+        cat {input} | awk '{{if(NR%4==1) {{printf(">%s\\n",substr($0,2));}} else if(NR%4==2) print;}}' > {output}
+        rm results/03_porechopABI/{names}_trimmed.fq
+        """
+````
+I will now test this again with these changes: 
+It only did run till porechop, so went looking in the log file: 
+````
+[Wed May 29 11:39:50 2024]
+localrule reformat:
+    input: results/03_porechopABI/GBBC_504_sup_trimmed.fq
+    output: results/03_porechopABI/GBBC_504_sup_OUTPUT.fasta
+    jobid: 8
+    reason: Missing output files: results/03_porechopABI/GBBC_504_sup_OUTPUT.fasta; Input files updated by another job: results/03_porechopABI/GBBC_504_sup_trimmed.fq
+    wildcards: names=GBBC_504_sup
+    resources: tmpdir=/tmp
+
+RuleException in rule reformat in file /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile, line 85:
+NameError: The name 'names' is unknown in this context. Did you mean 'wildcards.names'?, when formatting the following:
+
+        cat {input} | awk '{{if(NR%4==1) {{printf(">%s\n",substr($0,2));}} else if(NR%4==2) print;}}' > {output}
+        rm results/03_porechopABI/{names}_trimmed.fq
+        
+````
+yes, i made a mistake I needed to defin it in the shell part as input and not use the wildcard names. so I changed that. and tested again:
+````
+[Wed May 29 13:12:15 2024]
+Finished job 0.
+26 of 26 steps (100%) done
+Complete log: .snakemake/log/2024-05-29T120946.133978.snakemake.log
+````
+so now after improving this it's ready 
+
+

@@ -12,13 +12,13 @@ for i in range(len(sample_list)):
     if sample.endswith(".fq.gz"):
         samples = sample.split(".fq")[0]
         sample_names.append(samples)
-        print(sample_names)
+        #print(sample_names)
         
 rule all:
     input:
-        "results/01_nanoplot/NanoPlot-report.html",
+        expand("results/01_nanoplot/{names}/NanoPlot-report.html", names=sample_names),
         expand("results/02_filtlong/{names}_1000bp_100X.fq.gz", names=sample_names),
-        expand("results/03_porechopABI/{names}_trimmed.fq", names=sample_names),
+        expand("results/03_porechopABI/{names}_OUTPUT.fasta", names=sample_names),
         expand("results/05_racon/{names}_racon.fasta", names=sample_names),
         "results/06_skani/skani_results_file.txt",
         "results/07_quast/quast_summary_table.txt",
@@ -30,17 +30,17 @@ rule nanoplot:
     input:
         expand("data/samples/{names}.fq.gz", names=sample_names)
     output: 
-        "results/01_nanoplot/NanoPlot-report.html",
-        result = directory("results/01_nanoplot/")
+        "results/01_nanoplot/{names}/NanoPlot-report.html",
+        result = directory("results/01_nanoplot/{names}")
     log:
-        "logs/nanoplot.log"
+        "logs/nanoplot_{names}.log"
     params:
-        extra="-t 2"
+        extra="-t 24"
     conda:
         "envs/nanoplot.yaml"
     shell:
         """
-        NanoPlot {params.extra} --fastq data/samples/*.fq.gz -o {output.result} --maxlength 40000 --plots --legacy hex dot 2>> {log}
+        NanoPlot {params.extra} --fastq data/samples/*.fq.gz -o {output.result} --plots --legacy hex dot 2>> {log}
         """
 rule filtlong:
     input:
@@ -50,7 +50,7 @@ rule filtlong:
     log:
         "logs/filtlong_{names}.log"
     params:
-        extra="--min_length 1000 --target_bases 540000000"
+        extra="--min_length 1000 --target_bases 540000000 --keep_percent 95"
     conda:
         "envs/filtlong.yaml"
     shell:
@@ -65,7 +65,7 @@ rule unzip:
         "data/samples/{names}.fq"
     shell: 
         """
-            pigz -dk {input[0]}
+        pigz -dk {input[0]}
         """
 rule porechop: 
     input:
@@ -90,6 +90,7 @@ rule reformat:
     shell:
         """
         cat {input} | awk '{{if(NR%4==1) {{printf(">%s\\n",substr($0,2));}} else if(NR%4==2) print;}}' > {output}
+        rm {input}
         """
 
 rule flye:
@@ -100,7 +101,7 @@ rule flye:
     log:
         "logs/flye_{names}.log"
     params:
-        extra="--threads 32 --iterations 1 --scaffold"
+        extra="--threads 32 --iterations 4 --scaffold"
     conda: 
         "envs/flye.yaml"
     shell:
@@ -133,7 +134,7 @@ rule racon:
     log:
         "logs/racon_{names}.log"
     params: 
-        extra="--include-unpolished -t 16"
+        extra="--include-unpolished -t 24"
     shell:
         """
         racon {params.extra} {input.porechop} {input.minimap} {input.flye}/assembly.fasta > {output} 2>> {log}

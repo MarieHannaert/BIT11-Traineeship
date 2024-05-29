@@ -1,11 +1,11 @@
-# Long-read pipeline
+# Nanopore_only pipeline
 Marie Hannaert\
 ILVO
 
-Long-read pipeline is a pipeline to analyze long-reads from Nanopore.
-This repository is a snakemake workflow that can be used to analyze long-read data specific for bacterial genomes. Everything needed can be found in this repository. I made this pipeline during my traineeship by ILVO-Plant. 
+Nanopore pipeline is a pipeline to analyze long-reads from Nanopore.
+This repository is a snakemake workflow that can be used to analyze long-read data specific for bacterial genomes. Everything needed can be found in this repository. I made this pipeline during my traineeship at ILVO-Plant. 
 
-## Installing the long-read pipeline
+## Installing the Nanopore pipeline
 Snakemake is a workflow management system that helps to create and execute data processing pipelines. It requires Python 3 and can be most easily installed via the bioconda package.
 
 ### Installing Mamba
@@ -43,16 +43,22 @@ $ snakemake --help
 ````
 To check the documentation of Snakemake you can use the following link: [Snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html)
 
-Now the snakemake enviroment is ready for use with the pipeline. 
-
-### Downloading the long-read pipeline from Github
-When you want to use the long-read pipeline, you can download the complete pipeline, including: scripts, conda enviroments, ... on your own local maching. Good practise is to make a directory **Snakemake/** where you can collect all of your pipelines. Downloading the long-read pipeline in your snakemake directory can be done by the following command: 
+### Downloading the Nanopore pipeline from Github
+When you want to use the Nanopore pipeline, you can download the complete pipeline, including: scripts, conda enviroments, ... on your own local maching. Good practise is to make a directory **Snakemake/** where you can collect all of your pipelines. Downloading the Nanopore pipeline in your snakemake directory can be done by the following command: 
 ````
 $ cd Snakemake/ 
 $ git clone https://github.com/MarieHannaert/Long-read_Snakemake.git
 ````
+### Making the database that is used for skANI
+For using skANI you need to have a database, you can create one according to the following link: 
+[Creating a database for skANI](https://github.com/bluenote-1577/skani/wiki/Tutorial:-setting-up-the-GTDB-genome-database-to-search-against)
 
-## Executing the long-read pipeline 
+When your database is installed you need to changed this path to the database in the Snakefile **Snakemake/Nanopore_only_Snakemake/Snakefile**, line 155. 
+
+
+Now the snakemake enviroment is ready for use with the pipeline. 
+
+## Executing the Nanopore pipeline 
 Before you can execute this pipeline you need to perform a couple of preparing steps. 
 ### Preparing
 In the **Long-read_Snakemake/** you need to make the following directories: **data/samples**
@@ -60,17 +66,24 @@ In the **Long-read_Snakemake/** you need to make the following directories: **da
 $ cd Long-read_Snakemake/
 $ mkdir data/samples
 ````
-In the samples directory you need to palce the samples that you want to analyse. They must look like the following two samples:
+In the samples directory you need to place the samples that you want to analyse. They must look like the following two samples:
 - sample1.fq.gz
-- sample1.fq.gz
+- sample2.fq.gz
 
-## Executing the long-read pipeline
+#### Making scripts executable 
+To make the scripts executable you need to run the following command in the **Snakemake/Nanopore_only_Snakemake/** :
+````
+$ chmod +x scripts/*
+````
+This is needed because otherwise the scripts that are used in the pipeline cannot be executed. 
+
+## Executing the Nanopore pipeline
 Now everything is ready to run the pipeline. 
 If you want to run the pipeline without any output, just checking it it works, you can use the following command in the **Long-read_Snakemake/**: 
 ````
 $ snakemake -np
 ````
-Now you will get an overvieuw of all the steps in the pipeline. 
+Now you will get an overview of all the steps in the pipeline. 
 
 If you want to execute the pipeline and your samples are place in the **data/samples** directory, you can use the following command: 
 ````
@@ -123,7 +136,7 @@ Busco documentation: [Busco](https://busco.ezlab.org/)
 When your done executing the pipeline you will find the following structure in you **Long-read_Snakemake/**:
 ````
 Snakemake/
-├─ Long-read_Snakemake/
+├─ Nanopore_only_Snakemake/
 |  ├─ .snakemake
 │  ├─ data/
 |  |  ├─sampels/
@@ -147,5 +160,5 @@ Snakemake/
 │  ├─ README
 │  ├─ logs
 ````
-## Overview of long-read pipeline
-![A DAG of the long-read pipeline in snakemake](DAG_longread.png "DAG of the long-read pipeline")
+## Overview of Nanopore pipeline
+![A DAG of the Nanopore pipeline in snakemake](DAG_longread.png "DAG of the Nanopore pipeline")

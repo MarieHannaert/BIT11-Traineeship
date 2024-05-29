@@ -2701,3 +2701,7 @@ Finished job 0.
 Complete log: .snakemake/log/2024-05-29T105214.001108.snakemake.log
 ````
 so the busco summmary problem is solved. 
+
+## feedback on readme 
+skani and kraken2 the databases needs to be installed before running 
+-> paths to these databses need to be changed. 

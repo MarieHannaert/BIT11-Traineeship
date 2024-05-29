@@ -541,4 +541,10 @@ snakemake --rulegraph | dot -Tsvg > dag_simple.svg
 snakemake --dag | dot -Tsvg > dag.svg
 ````
 ## README 
-Now i will make the readme based on the readme from the illuminapipeline and I will also make a github repository for this pipeline on my github. 
+Now i will make the readme based on the readme from the illuminapipeline and I will also make a github repository for this pipeline on my github. µ
+
+feedback on the readme was that skani also skani sketch needs to be installed and that that needs to be told in the readme. 
+
+-> paths to these databses need to be changed. 
+
+the github will also be renamed to nanopore pipeline because thats is more consistent with illumina. 

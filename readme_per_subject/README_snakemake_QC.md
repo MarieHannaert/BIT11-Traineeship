@@ -344,3 +344,95 @@ so it looks like it works.
 
 I will now test it for real. 
 It didn't work. 
+
+## solving error
+```
+Assuming unrestricted shared filesystem usage.
+Building DAG of jobs...
+MissingInputException in rule buscosummary in file /home/genomics/mhannaert/snakemake/QCpipeline/Snakefile, line 116:
+Missing input files for rule buscosummary:
+    output: results/busco_summary
+    affected files:
+        results/08_busco/070_001_240321_001_0356_099_01_4691
+        results/08_busco/070_001_240321_001_0355_099_01_4691
+```
+I changed a few thing like somewhere there was still a 08_busco, but that folder won't be made
+and I runned again but: 
+````
+[Wed May 29 10:56:20 2024]
+Error in rule busco:
+    jobid: 8
+    input: data/assemblies/070_001_240321_001_0356_099_01_4691.fna
+    output: results/busco/070_001_240321_001_0356_099_01_4691
+    log: logs/busco_070_001_240321_001_0356_099_01_4691.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/QCpipeline/.snakemake/conda/199ca83dafe2436052f1cecb7442ba6b_
+    shell:
+
+        busco -i data/assemblies/070_001_240321_001_0356_099_01_4691.fna -o results/busco/070_001_240321_001_0356_099_01_4691 -m genome --auto-lineage-prok -c 32 2>> logs/busco_070_001_240321_001_0356_099_01_4691.log
+
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job busco since they might be corrupted:
+results/busco/070_001_240321_001_0356_099_01_4691
+[Wed May 29 10:56:21 2024]
+Error in rule busco:
+    jobid: 9
+    input: data/assemblies/070_001_240321_001_0355_099_01_4691.fna
+    output: results/busco/070_001_240321_001_0355_099_01_4691
+    log: logs/busco_070_001_240321_001_0355_099_01_4691.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/QCpipeline/.snakemake/conda/199ca83dafe2436052f1cecb7442ba6b_
+    shell:
+
+        busco -i data/assemblies/070_001_240321_001_0355_099_01_4691.fna -o results/busco/070_001_240321_001_0355_099_01_4691 -m genome --auto-lineage-prok -c 32 2>> logs/busco_070_001_240321_001_0355_099_01_4691.log
+
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job busco since they might be corrupted:
+results/busco/070_001_240321_001_0355_099_01_4691
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-29T105455.314041.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+
+In the logfile:
+2024-05-29 10:56:20 ERROR:	md5 hash is incorrect: 7850d04d1eb3b0c81f6bf2d5860317cf while eba6a090cbe21abe1db69d841e8231bc expected
+2024-05-29 10:56:21 ERROR:	[Errno 2] No such file or directory: '/home/genomics/mhannaert/snakemake/QCpipeline/busco_downloads/placement_files/supermatrix.aln.bacteria_odb10.2019-12-16.faa.tar.gz'
+````
+so it looks like something is wrong with the conda env, 
+so I will replace that with a new one. 
+I tested it:
+````
+2024-05-29 11:30:54 INFO:       Visit this page https://gitlab.com/ezlab/busco#how-to-cite-busco to see how to cite BUSCO
+[Wed May 29 11:30:55 2024]
+Finished job 8.
+7 of 10 steps (70%) done
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-05-29T112509.269955.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
+
+logfile: 
+EOFError: Compressed file ended before the end-of-stream marker was reached
+
+
+2024-05-29 11:29:52 ERROR:	Compressed file ended before the end-of-stream marker was reached
+2024-05-29 11:29:52 ERROR:	BUSCO analysis failed!
+2024-05-29 11:29:52 ERROR:	Check the logs, read the user guide (https://busco.ezlab.org/busco_userguide.html), and check the BUSCO issue board on https://gitlab.com/ezlab/busco/issues
+
+Error in rule busco:
+    jobid: 9
+    input: data/assemblies/070_001_240321_001_0355_099_01_4691.fna
+    output: results/busco/070_001_240321_001_0355_099_01_4691
+    log: logs/busco_070_001_240321_001_0355_099_01_4691.log (check log file(s) for error details)
+    conda-env: /home/genomics/mhannaert/snakemake/QCpipeline/.snakemake/conda/199ca83dafe2436052f1cecb7442ba6b_
+    shell:
+        
+        busco -i data/assemblies/070_001_240321_001_0355_099_01_4691.fna -o results/busco/070_001_240321_001_0355_099_01_4691 -m genome --auto-lineage-prok -c 32 2>> logs/busco_070_001_240321_001_0355_099_01_4691.log
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+````
+so One busco runned only and the summary wasn't done. 
+The error is in the busco rule. 
+

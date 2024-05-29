@@ -533,4 +533,12 @@ Complete log: .snakemake/log/2024-05-29T120946.133978.snakemake.log
 ````
 so now after improving this it's ready 
 
-
+## DAG and report
+NOw that the pipeline is ready I made the dag scheme for the two samples, a simpler one and the report of the snakemake: 
+````
+snakemake --report report.html
+snakemake --rulegraph | dot -Tsvg > dag_simple.svg
+snakemake --dag | dot -Tsvg > dag.svg
+````
+## README 
+Now i will make the readme based on the readme from the illuminapipeline and I will also make a github repository for this pipeline on my github. 

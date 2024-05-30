@@ -826,6 +826,89 @@ rule xlsx:
         """
 ````
 I runned this and it worked. 
+## DAG and report
+I made a dag and report and also tried the "--linter" option
+````
+snakemake --report report.html
+snakemake --rulegraph | dot -Tsvg > dag_simple.svg
+snakemake --dag | dot -Tsvg > dag.svg
+````
+
+When I looked at the DAG schema I saw a lot of links that were not nessecar, so I thin k there is to much in my rule all, and I think this problem is by every snakefile of me. 
+so I will delete all the unessary thing out of my rule all in my snakefiles. 
+
+
+> Snakemake (>=5.11) comes with a code quality checker (a so called linter), that analyzes your workflow and highlights issues that should be solved in order to follow best practices, achieve maximum readability, and reproducibility. The linter can be invoked with
+````
+snakemake --lint
+````
+Output: 
+````
+snakemake --lint
+Lints for snakefile /home/genomics/mhannaert/snakemake/QCpipeline/Snakefile:
+    * Absolute path "/data/assemblies" in line 6:
+      Do not define absolute paths inside of the workflow, since this renders your workflow irreproducible on other machines. Use path relative to the working directory instead, or
+      make the path configurable via a config file.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/configuration.html#configuration
+    * Path composition with '+' in line 6:
+      This becomes quickly unreadable. Usually, it is better to endure some redundancy against having a more readable workflow. Hence, just repeat common prefixes. If path composition
+      is unavoidable, use pathlib or (python >= 3.6) string formatting with f"...".
+      Also see:
+
+
+Lints for rule summarytable (line 105, /home/genomics/mhannaert/snakemake/QCpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule beeswarm (line 159, /home/genomics/mhannaert/snakemake/QCpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+
+Lints for rule buscosummary (line 229, /home/genomics/mhannaert/snakemake/QCpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+
+Lints for rule summarytable_CheckM2 (line 340, /home/genomics/mhannaert/snakemake/QCpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule xlsx (line 394, /home/genomics/mhannaert/snakemake/QCpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+````
+Maybe I will redo this tommorow to solve all this remarks. 
+
 ## readme
 Because everything worked I will now wright the readme file for the github repository. 
 I need to specify that it's a quality pipeline for bacterial genomes, that can be perfomed after the assembly is done. 

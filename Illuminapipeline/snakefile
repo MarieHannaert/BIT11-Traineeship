@@ -20,12 +20,6 @@ rule all:
     input:
         "results/01_multiqc/multiqc_report.html",
         expand("results/03_krona/{names}_{con}_krona.html", names=sample_names, con = CONDITIONS),
-        expand("results/04_fastp/{names}_fastp.html", names=sample_names),
-        expand("results/04_fastp/{names}_fastp.json", names=sample_names),
-        expand("results/05_shovill/{names}", names=sample_names),
-        expand("results/assemblies/{names}.fna", names=sample_names),
-        "results/06_skani/skani_results_file.txt",
-        "results/07_quast/quast_summary_table.txt",
         "results/06_skani/skANI_Quast_output.xlsx",
         "results/07_quast/beeswarm_vis_assemblies.png",
         "results/busco_summary"

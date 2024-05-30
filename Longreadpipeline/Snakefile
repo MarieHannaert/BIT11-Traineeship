@@ -17,11 +17,6 @@ for i in range(len(sample_list)):
 rule all:
     input:
         expand("results/01_nanoplot/{names}/NanoPlot-report.html", names=sample_names),
-        expand("results/02_filtlong/{names}_1000bp_100X.fq.gz", names=sample_names),
-        expand("results/03_porechopABI/{names}_OUTPUT.fasta", names=sample_names),
-        expand("results/05_racon/{names}_racon.fasta", names=sample_names),
-        "results/06_skani/skani_results_file.txt",
-        "results/07_quast/quast_summary_table.txt",
         "results/06_skani/skANI_Quast_output.xlsx",
         "results/07_quast/beeswarm_vis_assemblies.png",
         "results/busco_summary"

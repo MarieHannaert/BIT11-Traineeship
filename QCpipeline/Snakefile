@@ -115,7 +115,7 @@ rule busco:
         """
 rule buscosummary:
     input:
-        expand("results/08_busco/{names}", names=sample_names)
+        expand("results/busco/{names}", names=sample_names)
     output:
         directory("results/busco_summary")
     conda:

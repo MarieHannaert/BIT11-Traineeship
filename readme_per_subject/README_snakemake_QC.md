@@ -915,4 +915,4 @@ I need to specify that it's a quality pipeline for bacterial genomes, that can b
 
 I also need to specify the installation and downloads I did for checkM and checkM2. The rest I will reuse from the other readme files. 
 
-The result can be seen in the git repository: ****
+The result can be seen in the git repository: **Assembly_QC_Snakemake/**

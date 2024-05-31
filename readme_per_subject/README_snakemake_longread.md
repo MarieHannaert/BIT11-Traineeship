@@ -549,3 +549,157 @@ feedback on the readme was that skani also skani sketch needs to be installed an
 
 the github will also be renamed to nanopore pipeline because thats is more consistent with illumina. 
 
+## Checking with lint option 
+````
+snakemake --lint 
+````
+output: 
+````
+Lints for snakefile /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile:
+    * Absolute path "/data/samples" in line 6:
+      Do not define absolute paths inside of the workflow, since this renders your workflow irreproducible on other machines. Use path relative to the working directory instead, or
+      make the path configurable via a config file.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/configuration.html#configuration
+    * Path composition with '+' in line 6:
+      This becomes quickly unreadable. Usually, it is better to endure some redundancy against having a more readable workflow. Hence, just repeat common prefixes. If path composition
+      is unavoidable, use pathlib or (python >= 3.6) string formatting with f"...".
+      Also see:
+
+
+Lints for rule unzip (line 110, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * Do not access input and output files individually by index in shell commands:
+      When individual access to input or output files is needed (i.e., just writing '{input}' is impossible), use names ('{input.somename}') instead of index based access.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/rules.html#rules
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule reformat (line 174, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule racon (line 280, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule summarytable (line 389, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule xlsx (line 443, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule beeswarm (line 471, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+
+Lints for rule buscosummary (line 541, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+````
+summary: 
+conda env: 
+- racon
+log files 
+
+````
+conda create -n racon racon=1.5.0
+conda activate racon
+conda env export > racon.yaml
+conda deactivate
+````
+output, these I will let be: 
+````
+Lints for snakefile /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile:
+    * Absolute path "/data/samples" in line 6:
+      Do not define absolute paths inside of the workflow, since this renders your workflow irreproducible on other machines. Use path relative to the working directory instead, or
+      make the path configurable via a config file.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/configuration.html#configuration
+    * Path composition with '+' in line 6:
+      This becomes quickly unreadable. Usually, it is better to endure some redundancy against having a more readable workflow. Hence, just repeat common prefixes. If path composition
+      is unavoidable, use pathlib or (python >= 3.6) string formatting with f"...".
+      Also see:
+
+
+Lints for rule unzip (line 110, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * Do not access input and output files individually by index in shell commands:
+      When individual access to input or output files is needed (i.e., just writing '{input}' is impossible), use names ('{input.somename}') instead of index based access.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/rules.html#rules
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule reformat (line 179, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule summarytable (line 404, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * No log directive defined:
+      Without a log directive, all output will be printed to the terminal. In distributed environments, this means that errors are harder to discover. In local environments, output of
+      concurrent jobs will be mixed and become unreadable.
+      Also see:
+      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+
+Lints for rule xlsx (line 458, /home/genomics/mhannaert/snakemake/Longreadpipeline/Snakefile):
+    * Specify a conda environment or container for each rule.:
+      This way, the used software for each specific step is documented, and the workflow can be executed on any machine without prerequisites.
+      Also see:
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management
+      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
+````
+So I will leave it here by 

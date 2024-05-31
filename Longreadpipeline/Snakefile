@@ -58,9 +58,11 @@ rule unzip:
         expand("results/02_filtlong/{names}_1000bp_100X.fq.gz", names=sample_names)
     output:
         "data/samples/{names}.fq"
+    log:
+        "logs/unzip_{names}.log"
     shell: 
         """
-        pigz -dk {input[0]}
+        pigz -dk {input[0]} 2>> {log}
         """
 rule porechop: 
     input:
@@ -82,9 +84,11 @@ rule reformat:
         "results/03_porechopABI/{names}_trimmed.fq"
     output:
         "results/03_porechopABI/{names}_OUTPUT.fasta"
+    log:
+        "logs/reformat_{names}.log"
     shell:
         """
-        cat {input} | awk '{{if(NR%4==1) {{printf(">%s\\n",substr($0,2));}} else if(NR%4==2) print;}}' > {output}
+        cat {input} | awk '{{if(NR%4==1) {{printf(">%s\\n",substr($0,2));}} else if(NR%4==2) print;}}' > {output} 2>> {log}
         rm {input}
         """
 
@@ -128,6 +132,8 @@ rule racon:
         "results/05_racon/{names}_racon.fasta"
     log:
         "logs/racon_{names}.log"
+    conda: 
+        "envs/racon.yaml"
     params: 
         extra="--include-unpolished -t 24"
     shell:
@@ -192,9 +198,11 @@ rule xlsx:
         "results/06_skani/skani_results_file.txt"
     output:
         "results/06_skani/skANI_Quast_output.xlsx"
+    log:
+        "logs/xlsx.log"
     shell:
         """
-          scripts/skani_quast_to_xlsx.py results/
+          scripts/skani_quast_to_xlsx.py results/ 2>> {log}
           mv results/skANI_Quast_output.xlsx results/06_skani/
         """
 
@@ -205,9 +213,11 @@ rule beeswarm:
         "results/07_quast/beeswarm_vis_assemblies.png"
     conda:
         "envs/beeswarm.yaml"
+    log:
+        "logs/beeswarm.log"
     shell: 
         """
-            scripts/beeswarm_vis_assemblies.R {input}
+            scripts/beeswarm_vis_assemblies.R {input} 2>> {log}
             mv beeswarm_vis_assemblies.png results/07_quast/
         """
 rule busco:
@@ -232,9 +242,11 @@ rule buscosummary:
         directory("results/busco_summary")
     conda:
         "envs/busco.yaml"
+    log:
+        "logs/buscosummary.log"
     shell:
         """
-        scripts/busco_summary.sh results/busco_summary
+        scripts/busco_summary.sh results/busco_summary 2>> {log}
         rm -dr busco_downloads
         rm busco*.log
         rm -dr tmp

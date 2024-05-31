@@ -31,6 +31,8 @@ rule fastqc:
         result = directory("results/00_fastqc/{names}_{con}_fastqc/")
     log:
         "logs/fastqc_{names}_{con}.log"
+    conda:
+        "envs/fastqc.yaml"
     params:
         extra="-t 32"
     shell:
@@ -62,6 +64,8 @@ rule Kraken2:
         threads=8
     log:
         "logs/Kraken2_{names}_{con}.log"
+    conda:
+        "envs/kraken2.yaml"
     shell:
         """
         kraken2 --gzip-compressed {input} --db /var/db/kraken2/Standard --report {output} --threads {params.threads} --quick --memory-mapping 2>> {log}
@@ -96,6 +100,8 @@ rule Fastp:
         extra="-w 16"
     log:
         "logs/fastp_{names}.log"
+    conda:
+        "envs/fastp.yaml"
     shell:
         """
         fastp {params.extra} -i {input.first} -I {input.second} -o {output.first} -O {output.second} -h {output.html} -j {output.json} --detect_adapter_for_pe 2>> {log}
@@ -125,9 +131,11 @@ rule contigs:
         contigs_fa = "results/05_shovill/{names}/contigs.fa"
     output:
         assembly_fna = "results/assemblies/{names}.fna"
+    log:
+        "logs/contig_{names}.log"
     shell:
         """
-        cp {input.contigs_fa} {output.assembly_fna}
+        cp {input.contigs_fa} {output.assembly_fna} 2>> {log}
         """
 
 rule skani:
@@ -165,6 +173,8 @@ rule summarytable:
         expand("results/07_quast/{names}", names = sample_names)
     output: 
         "results/07_quast/quast_summary_table.txt"
+    log:
+        "logs/summary.log"
     shell:
         """
         touch {output}
@@ -191,9 +201,11 @@ rule xlsx:
         "results/06_skani/skani_results_file.txt"
     output:
         "results/06_skani/skANI_Quast_output.xlsx"
+    log:
+        "logs/xlsx.log"
     shell:
         """
-          scripts/skani_quast_to_xlsx.py results/
+          scripts/skani_quast_to_xlsx.py results/ 2>> {log}
           mv results/skANI_Quast_output.xlsx results/06_skani/
         """
 
@@ -204,9 +216,11 @@ rule beeswarm:
         "results/07_quast/beeswarm_vis_assemblies.png"
     conda:
         "envs/beeswarm.yaml"
+    log:
+        "logs/beeswarm.log"
     shell: 
         """
-            scripts/beeswarm_vis_assemblies.R {input}
+            scripts/beeswarm_vis_assemblies.R {input} 2>> {log}
             mv beeswarm_vis_assemblies.png results/07_quast/
         """
 
@@ -233,9 +247,11 @@ rule buscosummary:
         directory("results/busco_summary")
     conda:
         "envs/busco.yaml"
+    log:
+        "logs/buscosummary.log"
     shell:
         """
-        scripts/busco_summary.sh results/busco_summary
+        scripts/busco_summary.sh results/busco_summary 2>> {log}
         # Optional: Remove the busco_downloads directory if it exists in the parent directory
         rm -dr busco_downloads
         rm busco*.log

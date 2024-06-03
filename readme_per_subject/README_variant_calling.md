@@ -102,3 +102,32 @@ https://github.com/nickjcroucher/gubbins
 
 ## Output Snippy
 I went looking for the output of the snippy tool. 
+When I went to the directory my supervisor shared and selected on "Snippy" I got the following output: 
+````
+240503_Snippy_boom_selectie.pdf
+240503_SourceTrack_Snippy2.pdf
+240503_SourceTrack_Snippy.pdf
+240503_SourceTrack_Snippy.svg
+````
+
+The documentation shows that the output would be:\
+**.aln**	A core SNP alignment in the --aformat format (default FASTA)\
+**.full.aln**	A whole genome SNP alignment (includes invariant sites)\
+**.tab**	Tab-separated columnar list of core SNP sites with alleles but NO annotations\
+**.vcf**	Multi-sample VCF file with genotype GT tags for all discovered alleles\
+**.txt**	Tab-separated columnar list of alignment/core-size statistics\
+**.ref.fa**	FASTA version/copy of the --ref\
+**.self_mask.bed**	BED file generated if --mask auto is used.
+
+For using IGV I need as input the ".vcf" files. 
+
+## Tutorials IGV
+I needed to take a look at the following tutorials for IGV:  https://www.youtube.com/@IGVtutorials/videos
+
+specialy the ones about: 
+- navigation SNP's 
+- visualisation SNP's
+- VCF files 
+- Bam files 
+
+### VCF files 

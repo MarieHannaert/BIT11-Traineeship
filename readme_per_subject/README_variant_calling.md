@@ -192,4 +192,33 @@ done
 
 I tried this mini script: it worked, everything was just put below eachother
 
+Now I want to make a script that only uses these few last lines of the file. 
 
+This is what I made in **/home/genomics/mhannaert/scripts/summary_vcf_lines.sh**
+````
+#!/bin/bash
+# This script will create a muliple vcf file with only the last lines of the VCF files. 
+
+DIR="$1"
+OUT="$(pwd)"
+cd "$DIR"
+
+touch "$OUT"/multiple_vcf.vcf
+
+for sample in $(ls -d); do
+    grep -v '^##' "$sample"/snps.vcf >> "$OUT"/multiple_vcf.vcf
+done
+````
+I treid this: 
+Didn't work
+
+I changed the following line: 
+````
+    cat "$sample"/snps.vcf | grep -v '^##'  >> "$OUT"/multiple_vcf.vcf
+````
+Didn't work either, problem is with the directory. 
+I add the following: 
+````
+for sample in $(ls -d "$DIR"/*)
+````
+Did wokr. the summary was made. 

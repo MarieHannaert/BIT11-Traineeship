@@ -131,3 +131,65 @@ specialy the ones about:
 - Bam files 
 
 ### VCF files 
+https://youtu.be/EpD2ZHM7Q8Q
+
+VCF only stores variants 
+
+three parts: 
+- Meta-information 
+-Header
+- varaints 
+
+Information about the file type, like I already described above. 
+you have allel count and allel frequebncy, the frequency is how ofte the alternative occures. 
+
+### IGV Desktop video list 
+after following this video I decided the take a look at alle the video's because I think it's handy to know what IGV can do in general. 
+All the seven videos are around 5min, so this won't take to long. 
+The most interesting think to do is open IGV and following along with the tutorials, so that's what I did in this part. 
+
+The BAI file is the index file. If this file isn't there, it won't load. So you need to have and .bam and .bai file. 
+
+-> a reference is colored when it difference more than 20% from the reference. 
+You can change this percentage. 
+
+When you check SNP it's import to also take a look at the strand direction, because if all the snp are in a reverse strand then it will prob be false positive. 
+
+By vcf if grey then its reference, if it's dark blue it's heterozygote variant, if it's light blue is homozygote variant. 
+
+The last vieo was the most interessting for using: https://youtu.be/ZKwm8dqIQpg
+
+## making a summary file of vcf
+I need to make a multiple vcf file of all the vcf files. 
+I need the snps.vcf files. 
+
+I want to merge, the following information, but from different files: 
+````
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	GBBC_504
+cluster_001_consensus_polypolish	1830892	.	A	G	9161.09	.	AB=0;AO=259;DP=259;QA=10248;QR=0;RO=0;TYPE=snp	GT:DP:RO:QR:AO:QA:GL	1/1:259:0:0:259:10248:-921.735,-77.9668,0
+cluster_001_consensus_polypolish	2592524	.	T	C	10228.4	.	AB=0;AO=295;DP=295;QA=11438;QR=0;RO=0;TYPE=snp	GT:DP:RO:QR:AO:QA:GL	1/1:295:0:0:295:11438:-1028.75,-88.8039,0
+cluster_001_consensus_polypolish	2902857	.	C	T	10138.5	.	AB=0;AO=288;DP=288;QA=11323;QR=0;RO=0;TYPE=snp	GT:DP:RO:QR:AO:QA:GL	1/1:288:0:0:288:11323:-1018.39,-86.6966,0
+````
+I need to specify somewhere the sample, but the formats needs to be right. 
+I will fist make two scripts and then discuss with my supervisor what he needs. 
+first simple version that just combines all the files:
+**/home/genomics/mhannaert/scripts/summary_vcf.sh**
+content: 
+````
+#!/bin/bash
+# This script will create a muliple vcf file 
+
+DIR="$1"
+OUT="$(pwd)"
+cd "$DIR"
+
+touch multiple_vcf.vcf
+
+for file in $(find -type f -name "snps.vcf"); do
+    cat "$DIR"/"$file" >> "$OUT"/multiple_vcf.vcf
+done
+````
+
+I tried this mini script: it worked, everything was just put below eachother
+
+

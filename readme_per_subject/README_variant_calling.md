@@ -221,4 +221,82 @@ I add the following:
 ````
 for sample in $(ls -d "$DIR"/*)
 ````
-Did wokr. the summary was made. 
+Did work. the summary was made. 
+
+## asked my supervisor 
+I asked about the scripts and he told we need the one without all the metadata. so: **/home/genomics/mhannaert/scripts/summary_vcf_lines.sh**
+
+Also there are some samples double, so he asked to check wheter the SNP that are present are the same or if there are big differences. 
+
+## trying IGV with my own multifile 
+I took the file that steve told me as reference genome. 
+But I don't know if that's the right one. 
+I treid to load in the data in IGV, but got the following error: 
+>Error loading \\192.168.236.131\genomics\mhannaert\multiple_vcf_lines.vcf: Unable to parse header with error: Your input file has a malformed header: We never saw a header line specifying VCF version, for input source: \\192.168.236.131\genomics\mhannaert\multiple_vcf_lines.vcf
+
+I think it becaus the file does miss some of the metadata that is needed to load in. 
+So I used the summary file with all the metadata from the first script and this gives a bit of a result. 
+But still not the same as in the tutorial. 
+
+I decided not to work anymore with a multi file, but make a directory with all the needed files and load these in at the same time. 
+
+I made tree directories with the files I need for IGV: 
+- **/home/genomics/mhannaert/variant_calling/bam_bai_IGV**
+- **/home/genomics/mhannaert/variant_calling/snps_IGV**
+- **/home/genomics/mhannaert/variant_calling/bam_IGV**
+
+I now tried IGV again, 
+I also copied the reference to my varaint calling directory:
+**/home/genomics/mhannaert/variant_calling/GBBC502_reference.gbk**
+
+Oke after rewatching again I need to remake my script for mulitple I now know why It's not working. 
+so I changed it to: 
+
+````
+#!/bin/bash
+# This script will create a muliple vcf file with only the last lines of the VCF files. 
+
+DIR="$1"
+OUT="$(pwd)"
+cd "$DIR"
+
+touch "$OUT"/multiple_vcf_lines.vcf
+
+sample_list=()
+for file in $(ls | grep "GBBC");
+do sample_list+=("$file");
+done
+echo $sample_list
+echo -e "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$sample_list" >> "$OUT"/multiple_vcf_lines.vcf
+
+for sample in $(ls | grep "GBBC"); do
+    cat "$sample"/snps.vcf | grep -v '^#'  >> "$OUT"/multiple_vcf_lines.vcf
+done
+````
+but I only get one sample name as output. 
+
+I made it like this: 
+````
+#!/bin/bash
+# This script will create a muliple vcf file with only the last lines of the VCF files. 
+
+DIR="$1"
+OUT="$(pwd)"
+cd "$DIR"
+
+touch "$OUT"/multiple_vcf_lines.vcf
+
+sample_list=$(ls | grep "GBBC_")
+echo $sample_list
+
+echo -e "##fileformat=VCFv4.2" >> "$OUT"/multiple_vcf_lines.vcf
+echo -e "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$sample_list" >> "$OUT"/multiple_vcf_lines.vcf
+
+for sample in $(ls | grep "GBBC_"); do
+    cat "$sample"/snps.vcf | grep -v '^#'  >> "$OUT"/multiple_vcf_lines.vcf
+done
+````
+But when i load it in: 
+>Error loading \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf: Line 2: there aren't enough columns for line GBBC_1291_B (we expected 9 tokens, and saw 1 ), for input source: \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf
+
+So still something wrong with my file: 

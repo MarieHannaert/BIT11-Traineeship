@@ -478,3 +478,11 @@ ggtree(tree1, branch.length='none', layout='circular')
 ggtree(tree1, layout="daylight", branch.length = 'none')
 ````
 I will now try to make the visualisation better
+````
+ggtree(tree1, mrsd="2021-01-01")+ theme_tree2()
+
+ggtree(tree1,  mrsd="2023-01-01")+ geom_tiplab()+ theme_tree2()
+````
+But it isn't correct with the date, for expample sample 683 is taken in 1999, but in my tree it is 2018, so I need to specify thing more. 
+
+All the things I try come from: https://guangchuangyu.github.io/ggtree-book/chapter-ggtree.html#methods-and-materials-1

@@ -300,3 +300,125 @@ But when i load it in:
 >Error loading \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf: Line 2: there aren't enough columns for line GBBC_1291_B (we expected 9 tokens, and saw 1 ), for input source: \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf
 
 So still something wrong with my file: 
+The sample names are now below eachother, but they need to be one line 
+I did this by hand, but still wasn't right: 
+>Error loading \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf: The provided VCF file is malformed at approximately line number 3: there are 1 genotypes while the header requires that 43 genotypes be present for all records at cluster_001_consensus_polypolish:829567, for input source: \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf
+
+Because I only have one genotype....
+So I think qua structure the file is correct, but there is missing some information 
+Okay maybe it is not correct. 
+Because what stands next to format are the genotypes, but I put my sample names there, so that is not correct. 
+
+So I will go back to the previous version of the script. 
+
+````
+#!/bin/bash
+# This script will create a muliple vcf file with only the last lines of the VCF files. 
+
+DIR="$1"
+OUT="$(pwd)"
+cd "$DIR"
+
+touch "$OUT"/multiple_vcf_lines.vcf
+
+echo -e "##fileformat=VCFv4.2" >> "$OUT"/multiple_vcf_lines.vcf
+echo -e "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT" >> "$OUT"/multiple_vcf_lines.vcf
+
+for sample in $(ls | grep "GBBC_"); do
+    cat "$sample"/snps.vcf | grep -v '^#'  >> "$OUT"/multiple_vcf_lines.vcf
+done
+````
+this gave also an error: 
+>Error loading \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf: Unable to parse header with error: Your input file has a malformed header: The FORMAT field was provided but there is no genotype/sample data, for input source: \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf
+
+I removed the "FORMAT",
+This gave the following error: 
+>Error loading \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf: The provided VCF file is malformed at approximately line number 3: The VCF specification does not allow for whitespace in the INFO field. Offending field value was "AB=0;AO=233;DP=233;QA=9297;QR=0;RO=0;TYPE=snp GT:DP:RO:QR:AO:QA:GL 1/1:233:0:0:233:9297:-836.229,-70.14,0", for input source: \\192.168.236.131\genomics\mhannaert\variant_calling\multiple_vcf_lines.vcf
+
+I discussed all the things above with my supervisor and he told me I was right when I said that I missed some information in the files, like the genotypes, and that indeed thats the reason why it's not working. 
+
+So he will take a look at it and I can leave it for now. 
+And that I can do other things
+
+## Trying Gubbins
+If I want to try this, I need to do this in my WSL told my supervisor. 
+
+I also need to install this first in my WSL. 
+````
+conda install gubbins
+````
+It is isntalled in my conda base in mijn WSL
+
+I talked with my supervisor about this, he showed me how he did it and wich steps he took 
+
+So I think it's a good idea I do all these steps myself. 
+To perfomr these steps I need the data after running fasp. 
+
+## Snippy-gubbins 
+So I started by running fastp on my data that I got in **/home/genomics/mhannaert/data/00_reads**
+
+first I changed bz2 to gz
+Now I will perform fastp on the gz files: 
+the result can be found **/home/genomics/mhannaert/data/after_fastp**
+
+### further Snippy 
+I will now run snippy on these fasp samples. 
+
+I made an input.tab file of all the samples: 
+**/home/genomics/mhannaert/variant_calling/input.tab**
+I runned the following command: 
+````
+snippy-multi /home/genomics/mhannaert/variant_calling/input.tab --ref /home/genomics/mhannaert/variant_calling/GBBC502_reference.gbk --cpus 16 > runme.sh
+````
+But this gave an error: 
+>Reading: input.tab
+'RROR: [GBBC_1287] unreadable file '/home/genomics/mhannaert/data/after_fastp/GBBC_1287_2.fq.gz
+
+My file was a windows file, thus we have changed the file in notepad ++ to a unix file. 
+
+and a lot of typos
+
+Now It worked. 
+The script runme.sh was made. 
+The following step is: 
+sh ./runme.sh
+
+The output is per sample a directory and some files, the interesting files for late rin gubbins are: 
+- core.aln
+- core.full.aln
+- core.ref.fa
+- core.tab
+- core.txt
+- core.vcf
+
+So the next step with these files is perfoming the celan in snippy: 
+>You can remove all the "weird" characters and replace them with N using the included snippy-clean_full_aln. This is useful when you need to pass it to a tree-building or recombination-removal tool
+
+So I perfomed the following command: 
+````
+snippy-clean_full_aln core.full.aln > clean.full.aln
+````
+this created thus a clean.full.aln
+
+with this file I can work with gubbins 
+### Gubbins 
+Like I said before Gubbins needs to be perfomed in my WSL. 
+
+This is what stands in the snippy documentation for gubbins: 
+````
+run_gubbins.py -p gubbins clean.full.aln
+````
+I went now first looking again at the gubbins documentation and there the command is the same so I will now run this command. 
+The output from this is: 
+- gubbins.final_tree.tre 
+- gubbins.log
+- gubbins.node_labelled.final_tree.tre
+- gubbins.per_branch_statistics.csv
+- gubbins.recombination_predictions.embl
+- gubbins.recombination_predictions.gff
+- gubbins.summary_of_snp_distribution.vcf
+- gubbins.branch_base_reconstruction.embl
+- gubbins.filtered_polymorphic_sites.fasta
+- gubbins.filtered_polymorphic_sites.phylip 
+
+

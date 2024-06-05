@@ -421,4 +421,60 @@ The output from this is:
 - gubbins.filtered_polymorphic_sites.fasta
 - gubbins.filtered_polymorphic_sites.phylip 
 
+## ggtree
+Now with the files I got from the gubbins I kan take a look at the tree in ggtree for getting a nice tree. 
 
+The file I need to do this is the **gubbins.node_labelled.final_tree.tre** 
+
+I only need to find out how to use this data in Rstudio, because ggtree is from Rstudio. 
+
+This file I need to read in is a newick format
+I found online that I need: 
+````
+ape::read.tree(filename); phytools::read.newick(filename)
+````
+I also found this interesting information for in the end:
+>To save a tree to a text file, use ape::write.tree(tree, file='filename.txt') for Newick format (widely supported by most phylogenetic software)
+
+to read in the file: 
+````
+tree1 <- ape::read.tree("/home/genomics/mhannaert/variant_calling/Gubbins/gubbins.node_labelled.final_tree.tre"); 
+tree2 <- phytools::read.newick("/home/genomics/mhannaert/variant_calling/Gubbins/gubbins.node_labelled.final_tree.tre")
+````
+The output is then: 
+````
+> ape::read.tree("/home/genomics/mhannaert/variant_calling/Gubbins/gubbins.node_labelled.final_tree.tre"); 
+
+Phylogenetic tree with 29 tips and 28 internal nodes.
+
+Tip labels:
+  GBBC_762, GBBC_767_2, GBBC_629, GBBC_3519, GBBC_1317, GBBC_632, ...
+Node labels:
+  Node_28, Node_13, Node_12, Node_10, Node_9, Node_2, ...
+
+Rooted; includes branch lengths.
+> phytools::read.newick("/home/genomics/mhannaert/variant_calling/Gubbins/gubbins.node_labelled.final_tree.tre")
+Read 1 item
+````
+interesting site: https://eeob-macroevolution.github.io/Practicals/Intro_to_Phylo/intro_to_phylo.html
+
+I first need to install ggtree. 
+It was already installed. 
+
+SO now I will try to visualise a simple tree. 
+
+these are all the sort of styles of trees you can make: 
+````
+library(ggtree)
+ggtree(tree1)
+
+ggtree(tree1, layout="slanted") 
+ggtree(tree1, layout="circular")
+ggtree(tree1, layout="fan", open.angle=120)
+ggtree(tree1, layout="equal_angle")
+ggtree(tree1, layout="daylight")
+ggtree(tree1, branch.length='none')
+ggtree(tree1, branch.length='none', layout='circular')
+ggtree(tree1, layout="daylight", branch.length = 'none')
+````
+I will now try to make the visualisation better

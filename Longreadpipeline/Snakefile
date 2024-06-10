@@ -240,7 +240,7 @@ rule buscosummary:
         """
 rule checkM:
     input:
-       "data/assemblies/"
+       "results/05_racon/"
     output:
         directory("results/09_checkm/")
     params:
@@ -255,7 +255,7 @@ rule checkM:
         """
 rule checkM2:
     input:
-        "data/assemblies/{names}.fna"
+        "results/05_racon/{names}.fna"
     output:
         directory("results/10_checkM2/{names}")
     params:

@@ -1033,3 +1033,27 @@ Lints for rule xlsx (line 404, /home/genomics/mhannaert/snakemake/QCpipeline/Sna
       https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
 ````
 I will leaves these because I don't have conda env for my scripts. 
+
+## checkM error
+I added checkM to my longread and illumina pipeline 
+but I got an error. 
+Then I treid here again and I got the same error, so I will changes this part in the snqkefile: 
+````
+rule checkM:
+    input:
+       expand("data/assemblies/{names}.fna", names=sample_names)
+    output:
+        directory("results/checkm/")
+    params:
+        extra="-t 24"
+    log:
+        "logs/checkM.log"
+    conda:
+        "envs/checkm.yaml"
+    shell:
+        """
+        checkm lineage_wf {params.extra} data/assemblies/ {output} 2>> {log}
+        """
+````
+I hard coded the input, it is not a nice solution, but it may work. 
+I runned it again

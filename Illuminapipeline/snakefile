@@ -245,18 +245,18 @@ rule buscosummary:
         """
 rule checkM:
     input:
-       expand("results/assemblies/{names}.fna", names=sample_names)
+        expand("results/assemblies/{names}.fna", names=sample_names)
     output:
         directory("results/09_checkm/")
     params:
         extra="-t 24"
     log:
-        "logs/checkM.log"
+        "logs/checkMd.log"
     conda:
         "envs/checkm.yaml"
     shell:
         """
-        checkm lineage_wf {params.extra} {input} {output} 2>> {log}
+        checkm lineage_wf {params.extra} results/assemblies/ {output} 2>> {log}
         """
 rule checkM2:
     input:

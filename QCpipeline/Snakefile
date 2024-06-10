@@ -120,7 +120,7 @@ rule buscosummary:
         """
 rule checkM:
     input:
-       "data/assemblies/"
+       expand("data/assemblies/{names}.fna", names=sample_names)
     output:
         directory("results/checkm/")
     params:
@@ -131,7 +131,7 @@ rule checkM:
         "envs/checkm.yaml"
     shell:
         """
-        checkm lineage_wf {params.extra} {input} {output} 2>> {log}
+        checkm lineage_wf {params.extra} data/assemblies/ {output} 2>> {log}
         """
 rule checkM2:
     input:

@@ -810,3 +810,57 @@ Rules with provenance triggered jobs: unzip
 This was a dry-run (flag -n). The order of jobs does not reflect the order of execution.
 ````
 So this worked. 
+It didn't work, I needed to changed rule all. Also there were some typos. 
+The run didn't work, because I needed to install some databases for checkm
+and checkm2 
+
+Now I'm running again. 
+
+I also changed the readme file.
+
+I got an error by the checkm rule: 
+I think I need to change the input 
+I changed it to: 
+````
+rule checkM:
+    input:
+       "results/05_racon/{names}_racon.fasta"
+    output:
+        directory("results/09_checkm/{names}")
+    params:
+        extra="-t 24"
+    log:
+        "logs/checkM_{names}.log"
+    conda:
+        "envs/checkm.yaml"
+    shell:
+        """
+        checkm lineage_wf {params.extra} {input} {output} 2>> {log}
+        """
+````
+This was not the solution 
+
+I tried the QC pipeline again and it did also not work anymore. 
+
+So, I will look again into the documentation of checkM, because maybe there is an other way of making command. 
+I will try by hardcoding the input and using something else : 
+````
+rule checkM:
+    input:
+       expand("results/05_racon/{names}_racon.fasta", names=sample_names)
+    output:
+        directory("results/09_checkm/")
+    params:
+        extra="-t 24"
+    log:
+        "logs/checkM.log"
+    conda:
+        "envs/checkm.yaml"
+    shell:
+        """
+        checkm lineage_wf {params.extra} results/05_racon/ {output} 2>> {log}
+        """
+````
+It is not a nice solution, but maybe it works. 
+
+I tried it : 

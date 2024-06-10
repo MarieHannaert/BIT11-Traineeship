@@ -20,9 +20,10 @@ rule all:
     input:
         "results/01_multiqc/multiqc_report.html",
         expand("results/03_krona/{names}_{con}_krona.html", names=sample_names, con = CONDITIONS),
-        "results/06_skani/skANI_Quast_output.xlsx",
         "results/07_quast/beeswarm_vis_assemblies.png",
-        "results/busco_summary"
+        "results/busco_summary",
+        "results/checkm/",
+        "results/skANI_Quast_checkM2_output.xlsx"
 
 rule fastqc: 
     input:

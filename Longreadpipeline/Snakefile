@@ -17,9 +17,10 @@ for i in range(len(sample_list)):
 rule all:
     input:
         expand("results/01_nanoplot/{names}/NanoPlot-report.html", names=sample_names),
-        "results/06_skani/skANI_Quast_output.xlsx",
         "results/07_quast/beeswarm_vis_assemblies.png",
-        "results/busco_summary"
+        "results/busco_summary",
+        "results/checkm/",
+        "results/skANI_Quast_checkM2_output.xlsx"
 
 rule nanoplot:
     input:

@@ -192,20 +192,6 @@ rule summarytable:
             counter=$((counter+1))
         done
         """
-rule xlsx:
-    input:
-        "results/07_quast/quast_summary_table.txt",
-        "results/06_skani/skani_results_file.txt"
-    output:
-        "results/06_skani/skANI_Quast_output.xlsx"
-    log:
-        "logs/xlsx.log"
-    shell:
-        """
-          scripts/skani_quast_to_xlsx.py results/ 2>> {log}
-          mv results/skANI_Quast_output.xlsx results/06_skani/
-        """
-
 rule beeswarm:
     input:
         "results/07_quast/quast_summary_table.txt"
@@ -250,4 +236,71 @@ rule buscosummary:
         rm -dr busco_downloads
         rm busco*.log
         rm -dr tmp
+        """
+rule checkM:
+    input:
+       "data/assemblies/"
+    output:
+        directory("results/09_checkm/")
+    params:
+        extra="-t 24"
+    log:
+        "logs/checkM.log"
+    conda:
+        "envs/checkm.yaml"
+    shell:
+        """
+        checkm lineage_wf {params.extra} {input} {output} 2>> {log}
+        """
+rule checkM2:
+    input:
+        "data/assemblies/{names}.fna"
+    output:
+        directory("results/10_checkM2/{names}")
+    params:
+        extra="--threads 8"
+    log:
+        "logs/checkM2_{names}.log"
+    conda:
+        "envs/checkm2.yaml"
+    shell:
+        """
+        checkm2 predict {params.extra} --input {input} --output-directory {output} 2>> {log}
+        """
+rule summarytable_CheckM2:
+    input:
+        expand("results/10_checkM2/{names}", names = sample_names)
+    output: 
+        "results/10_checkM2/checkM2_summary_table.txt"
+    shell:
+        """
+        touch {output}
+        echo -e "Name\tCompleteness\tContamination\tCompleteness_Model_Used\tTranslation_Table_Used\tCoding_Density\tContig_N50\tAverage_Gene_Length\tGenome_Size\tGC_Content\tTotal_Coding_Sequences\tAdditional_Notes">> {output}
+        # Initialize a counter
+        counter=1
+
+        # Loop over all the transposed_report.tsv files and read them
+        for file in $(find -type f -name "quality_report.tsv"); do
+            # Show progress
+            echo "Processing file: $counter"
+
+            # Add the content of each file to the summary table (excluding the header)
+            tail -n +2 "$file" >> {output}
+
+            # Increment the counter
+            counter=$((counter+1))
+        done
+        """
+rule xlsx:
+    input:
+        "results/07_quast/quast_summary_table.txt",
+        "results/06_skani/skani_results_file.txt",
+        "results/10_checkM2/checkM2_summary_table.txt"
+    output:
+        "results/skANI_Quast_checkM2_output.xlsx"
+    log:
+        "logs/xlsx.log"
+    shell:
+        """
+        scripts/skani_quast_checkm2_to_xlsx.py results/ 2>> {log}
         """

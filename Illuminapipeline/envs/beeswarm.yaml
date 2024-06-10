@@ -168,6 +168,7 @@ dependencies:
   - r-backports=1.5.0=r43hb1dbf0f_0
   - r-base=4.3.3=hf0d99cb_1
   - r-base64enc=0.1_3=r43h57805ef_1006
+  - r-beeswarm=0.4.0=r43h57805ef_3
   - r-bit=4.0.5=r43h57805ef_1
   - r-bit64=4.0.5=r43h57805ef_2
   - r-blob=1.2.4=r43hc72bb7e_1

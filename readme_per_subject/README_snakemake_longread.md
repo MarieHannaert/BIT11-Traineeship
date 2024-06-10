@@ -703,3 +703,110 @@ Lints for rule xlsx (line 458, /home/genomics/mhannaert/snakemake/Longreadpipeli
       https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers
 ````
 So I will leave it here by 
+## Adding checkM and checkM2 
+I added the following part and changed the xlsx part
+````
+rule checkM:
+    input:
+       "data/assemblies/"
+    output:
+        directory("results/09_checkm/")
+    params:
+        extra="-t 24"
+    log:
+        "logs/checkM.log"
+    conda:
+        "envs/checkm.yaml"
+    shell:
+        """
+        checkm lineage_wf {params.extra} {input} {output} 2>> {log}
+        """
+rule checkM2:
+    input:
+        "data/assemblies/{names}.fna"
+    output:
+        directory("results/10_checkM2/{names}")
+    params:
+        extra="--threads 8"
+    log:
+        "logs/checkM2_{names}.log"
+    conda:
+        "envs/checkm2.yaml"
+    shell:
+        """
+        checkm2 predict {params.extra} --input {input} --output-directory {output} 2>> {log}
+        """
+rule summarytable_CheckM2:
+    input:
+        expand("results/10_checkM2/{names}", names = sample_names)
+    output: 
+        "results/10_checkM2/checkM2_summary_table.txt"
+    shell:
+        """
+        touch {output}
+        echo -e "Name\tCompleteness\tContamination\tCompleteness_Model_Used\tTranslation_Table_Used\tCoding_Density\tContig_N50\tAverage_Gene_Length\tGenome_Size\tGC_Content\tTotal_Coding_Sequences\tAdditional_Notes">> {output}
+        # Initialize a counter
+        counter=1
+
+        # Loop over all the transposed_report.tsv files and read them
+        for file in $(find -type f -name "quality_report.tsv"); do
+            # Show progress
+            echo "Processing file: $counter"
+
+            # Add the content of each file to the summary table (excluding the header)
+            tail -n +2 "$file" >> {output}
+
+            # Increment the counter
+            counter=$((counter+1))
+        done
+        """
+rule xlsx:
+    input:
+        "results/07_quast/quast_summary_table.txt",
+        "results/06_skani/skani_results_file.txt",
+        "results/10_checkM2/checkM2_summary_table.txt"
+    output:
+        "results/skANI_Quast_checkM2_output.xlsx"
+    log:
+        "logs/xlsx.log"
+    shell:
+        """
+        scripts/skani_quast_checkm2_to_xlsx.py results/ 2>> {log}
+        """
+````
+I tested it with snakemake -np, I got the following output: 
+````
+Job stats:
+job             count
+------------  -------
+all                 1
+beeswarm            1
+busco               2
+buscosummary        1
+flye                2
+minimap2            2
+porechop            2
+quast               2
+racon               2
+reformat            2
+summarytable        1
+unzip               2
+total              20
+
+Reasons:
+    (check individual jobs above for details)
+    code has changed since last execution:
+        unzip
+    input files updated by another job:
+        all, beeswarm, busco, buscosummary, flye, minimap2, porechop, quast, racon, reformat, summarytable
+    output files have to be generated:
+        porechop
+Some jobs were triggered by provenance information, see 'reason' section in the rule displays above.
+If you prefer that only modification time is used to determine whether a job shall be executed, use the command line option '--rerun-triggers mtime' (also see --help).
+If you are sure that a change for a certain output file (say, <outfile>) won't change the result (e.g. because you just changed the formatting of a script or environment definition), you can also wipe its metadata to skip such a trigger via 'snakemake --cleanup-metadata <outfile>'. 
+Rules with provenance triggered jobs: unzip
+
+
+This was a dry-run (flag -n). The order of jobs does not reflect the order of execution.
+````
+So this worked. 

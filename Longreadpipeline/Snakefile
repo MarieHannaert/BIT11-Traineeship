@@ -19,7 +19,7 @@ rule all:
         expand("results/01_nanoplot/{names}/NanoPlot-report.html", names=sample_names),
         "results/07_quast/beeswarm_vis_assemblies.png",
         "results/busco_summary",
-        "results/checkm/",
+        "results/09_checkm/",
         "results/skANI_Quast_checkM2_output.xlsx"
 
 rule nanoplot:
@@ -240,7 +240,7 @@ rule buscosummary:
         """
 rule checkM:
     input:
-       "results/05_racon/"
+       expand("results/05_racon/{names}_racon.fasta", names=sample_names)
     output:
         directory("results/09_checkm/")
     params:
@@ -255,7 +255,7 @@ rule checkM:
         """
 rule checkM2:
     input:
-        "results/05_racon/{names}.fna"
+        "results/05_racon/{names}_racon.fasta"
     output:
         directory("results/10_checkM2/{names}")
     params:

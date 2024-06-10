@@ -60,6 +60,31 @@ For using skANI you need to have a database, you can create one according to the
 
 When your database is installed you need to changed this path to the database in the Snakefile **Snakemake/Illumina_Snakemake/Snakefile**, line 152. 
 
+### Preparing checkM
+Before you can run the pipeline you need activate checkm_data. 
+````
+$ conda activate .snakemake/conda/fc1c0b2ff8156a2c81f4d97546659744_ #This path can differ from yours
+$ mkdir checkm_data
+$ cd checkm_data
+$ wget https://data.ace.uq.edu.au/public/CheckM_databases/checkm_data_2015_01_16.tar.gz
+$ tar -xvzf checkm_data_2015_01_16.tar.gz 
+$ rm checkm_data_2015_01_16.tar.gz 
+$ cd ..
+$ export CHECKM_DATA_PATH=<your own path>
+$ checkm data setRoot <your own path>
+````
+When you did this you can check if this work by running:
+````
+$ checkm test ~/checkm_test_results
+````
+### Preparing checkM2
+Here you also need to download the diamond database. 
+This can be done by the following steps: 
+````
+$ conda activate .snakemake/conda/5e00f98a73e68467497de6f423dfb41e_ #This path can differ from mine
+$ checkm2 database --download
+$ checkm2 testrun
+````
 
 Now the snakemake enviroment is ready for use with the pipeline. 
 ## Executing the Illumina pipeline 
@@ -150,7 +175,7 @@ Based on evolutionarily-informed expectations of gene content of near-universal 
 The output of Busco is a directory for each sample. To make it more visible, there will be made a summary graph per fifteteen samples. 
 
 Busco documentation: [Busco](https://busco.ezlab.org/)
-## Finnish
+## Finish
 When your done executing the pipeline you will find the following structure in you **Illumina_Snakemake/**:
 ````
 Snakemake/

@@ -47,7 +47,7 @@ To check the documentation of Snakemake you can use the following link: [Snakema
 When you want to use the Nanopore pipeline, you can download the complete pipeline, including: scripts, conda enviroments, ... on your own local maching. Good practise is to make a directory **Snakemake/** where you can collect all of your pipelines. Downloading the Nanopore pipeline in your snakemake directory can be done by the following command: 
 ````
 $ cd Snakemake/ 
-$ git clone https://github.com/MarieHannaert/Long-read_Snakemake.git
+$ git clone https://github.com/MarieHannaert/Nanopore_only_Snakemake.git
 ````
 ### Making the database that is used for skANI
 For using skANI you need to have a database, you can create one according to the following link: 
@@ -55,15 +55,40 @@ For using skANI you need to have a database, you can create one according to the
 
 When your database is installed you need to changed this path to the database in the Snakefile **Snakemake/Nanopore_only_Snakemake/Snakefile**, line 155. 
 
+### Preparing checkM
+Before you can run the pipeline you need activate checkm_data. 
+````
+$ conda activate .snakemake/conda/fc1c0b2ff8156a2c81f4d97546659744_ #This path can differ from yours
+$ mkdir checkm_data
+$ cd checkm_data
+$ wget https://data.ace.uq.edu.au/public/CheckM_databases/checkm_data_2015_01_16.tar.gz
+$ tar -xvzf checkm_data_2015_01_16.tar.gz 
+$ rm checkm_data_2015_01_16.tar.gz 
+$ cd ..
+$ export CHECKM_DATA_PATH=<your own path>
+$ checkm data setRoot <your own path>
+````
+When you did this you can check if this work by running:
+````
+$ checkm test ~/checkm_test_results
+````
+### Preparing checkM2
+Here you also need to download the diamond database. 
+This can be done by the following steps: 
+````
+$ conda activate .snakemake/conda/5e00f98a73e68467497de6f423dfb41e_ #This path can differ from mine
+$ checkm2 database --download
+$ checkm2 testrun
+````
 
 Now the snakemake enviroment is ready for use with the pipeline. 
 
 ## Executing the Nanopore pipeline 
 Before you can execute this pipeline you need to perform a couple of preparing steps. 
 ### Preparing
-In the **Long-read_Snakemake/** you need to make the following directories: **data/samples**
+In the **Nanopore_only_Snakemake/** you need to make the following directories: **data/samples**
 ````
-$ cd Long-read_Snakemake/
+$ cd Nanopore_only_Snakemake/
 $ mkdir data/samples
 ````
 In the samples directory you need to place the samples that you want to analyse. They must look like the following two samples:
@@ -77,9 +102,15 @@ $ chmod +x scripts/*
 ````
 This is needed because otherwise the scripts that are used in the pipeline cannot be executed. 
 
+#### Personalize genomesize
+The genomesize is hardcoded in multiple lines. you need to change this to your genomesize. 
+The lines in the Snakefile were you need to change this are:
+- 53
+- 109
+
 ## Executing the Nanopore pipeline
 Now everything is ready to run the pipeline. 
-If you want to run the pipeline without any output, just checking it it works, you can use the following command in the **Long-read_Snakemake/**: 
+If you want to run the pipeline without any output, just checking it it works, you can use the following command in the **Nanopore_only_Snakemake/**: 
 ````
 $ snakemake -np
 ````
@@ -133,7 +164,7 @@ The output of Busco is a directory for each sample. To make it more visible, the
 
 Busco documentation: [Busco](https://busco.ezlab.org/)
 ## Finish
-When your done executing the pipeline you will find the following structure in you **Long-read_Snakemake/**:
+When your done executing the pipeline you will find the following structure in you **Nanopore_only_Snakemake/**:
 ````
 Snakemake/
 ├─ Nanopore_only_Snakemake/

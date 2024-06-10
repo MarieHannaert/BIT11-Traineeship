@@ -22,7 +22,7 @@ rule all:
         expand("results/03_krona/{names}_{con}_krona.html", names=sample_names, con = CONDITIONS),
         "results/07_quast/beeswarm_vis_assemblies.png",
         "results/busco_summary",
-        "results/checkm/",
+        "results/09_checkm/",
         "results/skANI_Quast_checkM2_output.xlsx"
 
 rule fastqc: 
@@ -245,7 +245,7 @@ rule buscosummary:
         """
 rule checkM:
     input:
-       "data/assemblies/"
+       expand("results/assemblies/{names}.fna", names=sample_names)
     output:
         directory("results/09_checkm/")
     params:
@@ -260,7 +260,7 @@ rule checkM:
         """
 rule checkM2:
     input:
-        "data/assemblies/{names}.fna"
+        "results/assemblies/{names}.fna"
     output:
         directory("results/10_checkM2/{names}")
     params:

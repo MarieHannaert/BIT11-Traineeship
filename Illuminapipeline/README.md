@@ -152,6 +152,14 @@ Quast documentation: [Quast](https://quast.sourceforge.net/)
 Assessing Genome Assembly and Annotation Completeness. Based on evolutionarily-informed expectations of gene content of near-universal single-copy orthologs, the BUSCO metric is complementary to technical metrics like N50. The output of BUSCO is a directory for each sample. To make it more visible, a summary graph will be created for every fifteen assemblies.
 
 Busco documentation: [Busco](https://busco.ezlab.org/)
+#### CheckM2
+CheckM2 is similar to CheckM, but CheckM2 has universally trained machine learning models.
+
+>This allows it to incorporate many lineages in its training set that have few - or even just one - high-quality genomic representatives, by putting it in the context of all other organisms in the training set.
+
+From these results, a summary table will be created and used as input for the XLSX file:  **skANI_Quast_checkM2_output.xlsx**.
+
+CheckM2 documentation: [CheckM2](https://github.com/chklovski/CheckM2)
 ## Finish
 When your done executing the pipeline, you will find the following structure in you **Illumina_Snakemake/**:
 ````

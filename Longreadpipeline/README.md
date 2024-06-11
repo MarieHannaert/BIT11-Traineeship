@@ -54,23 +54,6 @@ For using skANI, you need to create a database. Follow the instructions here:
 
 Once your database is installed, update the path to the database in the Snakefile at **Snakemake/Nanopore_only_Snakemake/Snakefile**, line 155. 
 
-### Preparing checkM
-Before running the pipeline, activate checkm_data:. 
-````
-$ conda activate .snakemake/conda/fc1c0b2ff8156a2c81f4d97546659744_ #This path can differ from yours
-$ mkdir checkm_data
-$ cd checkm_data
-$ wget https://data.ace.uq.edu.au/public/CheckM_databases/checkm_data_2015_01_16.tar.gz
-$ tar -xvzf checkm_data_2015_01_16.tar.gz 
-$ rm checkm_data_2015_01_16.tar.gz 
-$ cd ..
-$ export CHECKM_DATA_PATH=<your own path>
-$ checkm data setRoot <your own path>
-````
-Verify the setup by running:
-````
-$ checkm test ~/checkm_test_results
-````
 ### Preparing checkM2
 Download the diamond database: 
 ````
@@ -152,10 +135,6 @@ Quast documentation: [Quast](https://quast.sourceforge.net/)
 BUSCO evaluates genome assembly and annotation completeness, providing a summary graph for up to fifteen samples.
 
 Busco documentation: [Busco](https://busco.ezlab.org/)
-#### CheckM
-CheckM is a tool that assesses the quality of your assemblies, specifically for contamination. It comprises a set of tools that perform various checks on your assemblies.
-
-CheckM documentation: [CheckM](https://github.com/Ecogenomics/CheckM/wiki)
 #### CheckM2
 CheckM2 is similar to CheckM but uses universally trained machine learning models. 
 
@@ -173,7 +152,6 @@ Snakemake/
 │  ├─ data/
 |  |  ├─sampels/
 |  ├─ envs
-|  ├─ checkm_data/
 |  ├─ scripts/
 |  |  ├─beeswarm_vis_assemblies.R
 |  |  ├─busco_summary.sh
@@ -188,8 +166,7 @@ Snakemake/
 |  |  ├─06_skani/
 |  |  ├─07_quast/
 |  |  ├─08_busco/
-|  |  ├─09_checkm/
-|  |  ├─10_checkm2/
+|  |  ├─09_checkm2/
 |  |  ├─assemblies/
 |  |  ├─busco_summary/
 │  ├─ README

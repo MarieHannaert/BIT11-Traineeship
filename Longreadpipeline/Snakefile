@@ -19,7 +19,6 @@ rule all:
         expand("results/01_nanoplot/{names}/NanoPlot-report.html", names=sample_names),
         "results/07_quast/beeswarm_vis_assemblies.png",
         "results/busco_summary",
-        "results/09_checkm/",
         "results/skANI_Quast_checkM2_output.xlsx"
 
 rule nanoplot:
@@ -238,26 +237,11 @@ rule buscosummary:
         rm busco*.log
         rm -dr tmp
         """
-rule checkM:
-    input:
-       expand("results/05_racon/{names}_racon.fasta", names=sample_names)
-    output:
-        directory("results/09_checkm/")
-    params:
-        extra="-t 24"
-    log:
-        "logs/checkM.log"
-    conda:
-        "envs/checkm.yaml"
-    shell:
-        """
-        checkm lineage_wf {params.extra} results/05_racon/ {output} 2>> {log}
-        """
 rule checkM2:
     input:
         "results/05_racon/{names}_racon.fasta"
     output:
-        directory("results/10_checkM2/{names}")
+        directory("results/09_checkM2/{names}")
     params:
         extra="--threads 8"
     log:
@@ -270,9 +254,9 @@ rule checkM2:
         """
 rule summarytable_CheckM2:
     input:
-        expand("results/10_checkM2/{names}", names = sample_names)
+        expand("results/09_checkM2/{names}", names = sample_names)
     output: 
-        "results/10_checkM2/checkM2_summary_table.txt"
+        "results/09_checkM2/checkM2_summary_table.txt"
     shell:
         """
         touch {output}
@@ -296,7 +280,7 @@ rule xlsx:
     input:
         "results/07_quast/quast_summary_table.txt",
         "results/06_skani/skani_results_file.txt",
-        "results/10_checkM2/checkM2_summary_table.txt"
+        "results/09_checkM2/checkM2_summary_table.txt"
     output:
         "results/skANI_Quast_checkM2_output.xlsx"
     log:

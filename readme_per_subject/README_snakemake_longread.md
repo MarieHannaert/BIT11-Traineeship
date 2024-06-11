@@ -863,4 +863,5 @@ rule checkM:
 ````
 It is not a nice solution, but maybe it works. 
 
-I tried it : 
+I tried it : It did not work. 
+I talked with my supervisor and because of the already use of checkm2, the checkm is not needed, so we deleted this one. This solves the error. 

@@ -1056,4 +1056,6 @@ rule checkM:
         """
 ````
 I hard coded the input, it is not a nice solution, but it may work. 
-I runned it again
+I runned it again, did not work
+
+I talked with my supervisor and because of the already use of checkm2, the checkm is not needed, so we deleted this one. This solves the error. 

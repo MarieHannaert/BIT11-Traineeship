@@ -237,7 +237,7 @@ rule buscosummary:
         "logs/buscosummary.log"
     shell:
         """
-        scripts/busco_summary.sh results/busco_summary 2>> {log}
+        scripts/summaries_busco.sh results/busco_summary 2>> {log}
         # Optional: Remove the busco_downloads directory if it exists in the parent directory
         rm -dr busco_downloads
         rm busco*.log

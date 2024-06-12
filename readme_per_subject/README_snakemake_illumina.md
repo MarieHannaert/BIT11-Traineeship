@@ -3078,3 +3078,8 @@ It is not a nice solution, but maybe it works.
 
 I runned it again, but did not work. 
 I talked with my supervisor and because of the already use of checkm2, the checkm is not needed, so we deleted this one. This solves the error. 
+
+## Looking at result of running new batch in illumina pipeline 
+We had a new batch of samples from illumina and analysed these with the pipeline. 
+The most went very well and the pipeline worked. The only thing that didn't work was the making of the summaries of buscofiles. 
+The graph was only made for the first 15 samples. but there are 52 so We missed 37 samples. 
